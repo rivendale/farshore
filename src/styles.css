@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0c1210;
+  --color-bg-elevated: #141c19;
+  --color-surface: #1a2420;
+  --color-surface-2: #22302b;
+  --color-fg: #ece6d8;
+  --color-muted: #9a9488;
+  --color-faint: #6f6a62;
+  --color-primary: #b8c4c0;
+  --color-primary-fg: #0c1210;
+  --color-accent: #8ea3a0;
+  --color-border: color-mix(in oklab, #ece6d8 14%, transparent);
+  --color-border-strong: color-mix(in oklab, #ece6d8 24%, transparent);
+  --color-good: #7d9a74;
+  --color-warn: #c4a56a;
+  --color-bad: #b45c4e;
+  --color-water: #1c3a44;
+  --font-display: "Fraunces", "Times New Roman", serif;
+  --font-sans: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 26px;
+  --shadow-panel: 0 18px 40px color-mix(in oklab, #000 38%, transparent);
+}
+
+@layer base {
+  html,
+  body,
+  #app {
+    height: 100%;
+  }
+
+  html {
+    background: var(--color-bg);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-panel);
+}
+
+.safe-x {
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+.safe-b {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+.safe-t {
+  padding-top: max(10px, env(safe-area-inset-top));
+}
