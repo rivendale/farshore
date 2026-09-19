@@ -12,7 +12,9 @@ Touch-first, portrait. Land on Haven Isle, raise a hut, farm, and lumber camp, m
 - One to three caravels: load by hand, or set a looping route (Haven cane → distillery → Europe)
 - Native gifts, trade, settlement, teachers, hidden veins, and raids if you chop too close
 - A rival flag (Spain’s San Isidro, or Fort Orange if you fly Spain) that can take Iron Cape and dump ore in Europe
-- Founding fathers, militia, raid or revolution
+- Townhouse fork: Merchant Manor (Tory gold) or Patriot Hall (bells). The split is a real choice.
+- Hosts land on the beach. Send companies, then stand and fight — no coin-flip in the dark.
+- Founding fathers, militia, punitive raid or revolution
 - Two endings: free republic, or a Governor’s Palace charter
 - Local save; idle catch-up while you’re away
 

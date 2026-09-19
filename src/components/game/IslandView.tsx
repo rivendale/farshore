@@ -9,6 +9,7 @@ export function IslandView() {
   const selected = useGame((s) => s.selectedTile);
   const selectTile = useGame((s) => s.selectTile);
   const rival = useGame((s) => s.rival);
+  const war = useGame((s) => s.war);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [cam, setCam] = useState({ x: 0, y: 0, z: 1 });
   const drag = useRef({
@@ -135,6 +136,13 @@ export function IslandView() {
           const native = island.native && island.native.x === t.x && island.native.y === t.y;
           const sel = selected?.x === t.x && selected?.y === t.y;
           const forestTree = t.terrain === "forest" && !b && !native;
+          const landing =
+            war?.landed &&
+            !war.resolved &&
+            war.islandId === island.id &&
+            war.x === t.x &&
+            war.y === t.y;
+          const faction = b ? (b.type === "townhouse" || b.type === "manor" ? "tory" : b.type === "patriot" ? "patriot" : null) : null;
           return (
             <div
               key={`${t.x}-${t.y}`}
@@ -179,8 +187,18 @@ export function IslandView() {
                   />
                   {b.idle ? (
                     <span className="pointer-events-none absolute right-1 top-1 size-2 rounded-full bg-warn" />
+                  ) : faction === "tory" ? (
+                    <span className="pointer-events-none absolute right-1 top-1 size-2 rounded-full bg-bad" />
+                  ) : faction === "patriot" ? (
+                    <span className="pointer-events-none absolute right-1 top-1 size-2 rounded-full bg-good" />
                   ) : null}
                 </>
+              ) : null}
+              {landing ? (
+                <div className="pointer-events-none absolute inset-[8%] flex flex-col items-center justify-center rounded-full bg-bad/90 text-fg shadow-[var(--shadow-panel)]">
+                  <span className="font-display text-lg leading-none tabular">{war.enemy}</span>
+                  <span className="text-[9px] uppercase tracking-wider">host</span>
+                </div>
               ) : null}
               {sel ? (
                 <div className="pointer-events-none absolute inset-[3px] rounded-[6px] ring-2 ring-primary/90" />

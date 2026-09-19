@@ -22,6 +22,7 @@ import {
 import { createGame } from "@/game/sim/create";
 import { royalHost } from "@/game/sim/combat";
 import { emptyStop } from "@/game/sim/routes";
+import { concludeWar, makeWar } from "@/game/sim/war";
 import { clearSave, loadSave, writeSave } from "@/game/persist";
 import { uid } from "@/game/sim/rng";
 import { catchUp, tickDay } from "@/game/sim/tick";
@@ -51,7 +52,7 @@ type Actions = {
   tickDay: () => void;
   catchUp: () => void;
   place: (type: BuildingId) => string | null;
-  upgrade: () => string | null;
+  upgrade: (want?: BuildingId) => string | null;
   demolish: () => void;
   assignJob: (colonistId: string) => string | null;
   unassignJob: (colonistId: string) => void;
@@ -79,6 +80,9 @@ type Actions = {
   advanceTutorial: () => void;
   refuseTax: () => void;
   declare: () => string | null;
+  commitMilitia: () => string | null;
+  engage: () => string | null;
+  openLanding: () => void;
 };
 
 let saveTimer: number | null = null;
@@ -164,6 +168,11 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     const native = isle.native && isle.native.x === x && isle.native.y === y;
     const b = isle.buildings.find((b) => b.x === x && b.y === y);
     const tile = isle.tiles.find((t) => t.x === x && t.y === y);
+    const landing = state.war?.landed && state.war.islandId === isle.id && state.war.x === x && state.war.y === y;
+    if (landing) {
+      set({ selectedTile: { x, y }, sheet: "tile" });
+      return;
+    }
     if (!tile || tile.terrain === "water") {
       set({ selectedTile: { x, y }, sheet: "none" });
       return;
@@ -236,22 +245,23 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     return null;
   },
 
-  upgrade: () => {
+  upgrade: (want) => {
     const state = get();
     const tile = state.selectedTile;
     if (!tile) return "Select a house.";
     const isle = currentIsland(state);
     const b = isle.buildings.find((b) => b.x === tile.x && b.y === tile.y);
     if (!b) return "Nothing to raise.";
-    const nextType = (
+    const opts = (
       {
-        hut: "cottage",
-        cottage: "townhouse",
-        townhouse: "manor",
-        manor: "patriot",
-      } as Partial<Record<BuildingId, BuildingId>>
+        hut: ["cottage"],
+        cottage: ["townhouse"],
+        townhouse: ["manor", "patriot"],
+      } as Partial<Record<BuildingId, BuildingId[]>>
     )[b.type];
-    if (!nextType) return "This house is finished.";
+    if (!opts?.length) return "This house is finished.";
+    const nextType = want && opts.includes(want) ? want : opts.length === 1 ? opts[0] : null;
+    if (!nextType) return "Choose the manor or the patriot hall.";
     const def = BUILDING_BY_ID[nextType];
     if (!isUnlocked(def, state)) return "The colony is not ready for that life.";
     if (!stockHas(isle.storage, def.cost)) return "Need more stores.";
@@ -778,13 +788,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     const next: GameState = {
       ...state,
       liberty: state.liberty + 10,
-      war: {
-        kind: "raid",
-        eta: 7,
-        enemy: royalHost(state.day, colonies, "raid", state.rival?.liberty ?? 0),
-        resolved: false,
-        result: "pending",
-      },
+      war: makeWar("raid", royalHost(state.day, colonies, "raid", state.rival?.liberty ?? 0), 7, "haven"),
     };
     notify(next, "You refuse the tariff. A punitive squadron is rumored.", "bad");
     set(next);
@@ -801,18 +805,66 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     const next: GameState = {
       ...state,
       declared: true,
-      war: {
-        kind: "revolution",
-        eta: 10,
-        enemy: royalHost(state.day, colonies, "revolution", state.rival?.liberty ?? 0),
-        resolved: false,
-        result: "pending",
-      },
+      war: makeWar(
+        "revolution",
+        royalHost(state.day, colonies, "revolution", state.rival?.liberty ?? 0),
+        10,
+        "haven",
+      ),
     };
     notify(next, "Independence is declared. The royal expedition is coming.", "warn");
     set(next);
     scheduleSave(next);
     return null;
+  },
+
+  commitMilitia: () => {
+    const state = get();
+    const war = state.war;
+    if (!war || !war.landed || war.resolved) return "No landing to meet.";
+    if (state.militia <= 0) return "No militia left. Train them in the barracks.";
+    if (war.committed >= 6) return "The strand is full.";
+    const next = {
+      ...state,
+      militia: state.militia - 1,
+      war: { ...war, committed: war.committed + 1 },
+    };
+    set(next);
+    scheduleSave(next);
+    return null;
+  },
+
+  engage: () => {
+    const state = get();
+    const war = state.war;
+    if (!war || !war.landed || war.resolved) return "No one on the sand.";
+    if (war.committed < 1) return "Commit at least one company.";
+    const next: GameState = {
+      ...state,
+      islands: state.islands.map((i) => ({
+        ...i,
+        native: i.native ? { ...i.native } : null,
+        storage: { ...i.storage },
+        buildings: i.buildings.map((b) => ({ ...b })),
+      })),
+      colonists: state.colonists.map((c) => ({ ...c })),
+      war: { ...war },
+    };
+    concludeWar(next);
+    set(next);
+    scheduleSave(next);
+    return null;
+  },
+
+  openLanding: () => {
+    const war = get().war;
+    if (!war?.landed) return;
+    set({
+      view: "island",
+      selectedIslandId: war.islandId,
+      selectedTile: { x: war.x, y: war.y },
+      sheet: "tile",
+    });
   },
 }));
 

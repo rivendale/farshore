@@ -154,12 +154,20 @@ export type GameEvent = {
   tone: "info" | "good" | "warn" | "bad";
 };
 
+export type WarKind = "raid" | "revolution" | "native";
+
 export type WarState = {
-  kind: "raid" | "revolution";
+  kind: WarKind;
   eta: number;
   enemy: number;
   resolved: boolean;
   result: "pending" | "won" | "lost";
+  landed: boolean;
+  islandId: IslandId;
+  x: number;
+  y: number;
+  committed: number;
+  grace: number;
 };
 
 export type RivalState = {

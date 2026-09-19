@@ -1,6 +1,7 @@
 import { NATIONS, addStock, payStock } from "@/game/data/catalog";
 import { makeColonist, refreshPeople } from "@/game/data/people";
 import { uid } from "@/game/sim/rng";
+import { fillWar, landHost, makeWar } from "@/game/sim/war";
 import type {
   BuildingInst,
   GameState,
@@ -156,21 +157,18 @@ export function tickNatives(state: GameState) {
       if ((isle.storage.lumber ?? 0) > 2) steal.lumber = Math.min(4, isle.storage.lumber ?? 0);
       if ((isle.storage.tools ?? 0) > 0) steal.tools = 1;
       isle.storage = payStock(isle.storage, steal);
-      const prey = state.colonists.find(
-        (c) => c.islandId === isle.id && c.homeId && !c.locked,
-      );
-      if (prey) {
-        state.colonists = state.colonists.filter((c) => c.id !== prey.id);
+      n.relation = Math.min(n.relation, 18);
+      if (!state.war) {
+        state.war = makeWar("native", 5 + chops, 0, isle.id);
+        landHost(state);
         pushLog(
           state,
-          `The ${n.name} raid ${isle.name}. ${prey.name} is taken. Stores vanish into the trees.`,
+          `The ${n.name} come out of the trees on ${isle.name}. Meet them on the strand.`,
           "bad",
         );
       } else {
         pushLog(state, `The ${n.name} raid ${isle.name}. Stores vanish into the trees.`, "bad");
       }
-      n.relation = Math.min(n.relation, 18);
-      refreshPeople(state);
     }
   }
 }
@@ -293,6 +291,7 @@ export function migrateWorld(state: GameState): GameState {
           shipName: state.rival.shipName ?? RIVAL_POSTS[state.rival.nationId]?.ship ?? "Packet",
         }
       : makeRival(state.nationId),
+    war: fillWar(state.war),
   };
   return next;
 }

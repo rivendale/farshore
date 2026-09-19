@@ -11,7 +11,7 @@ import type {
 
 export const DAY_SECONDS = 1.15;
 export const SAVE_KEY = "farshore.save.v1";
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const MAP_SIZE = 9;
 
 export const GOODS: {
@@ -62,6 +62,7 @@ export type BuildingDef = {
   climate?: "tropical";
   unique?: boolean;
   upgradeFrom?: BuildingId;
+  faction?: "tory" | "patriot" | "neutral";
 };
 
 export const BUILDINGS: BuildingDef[] = [
@@ -107,7 +108,7 @@ export const BUILDINGS: BuildingDef[] = [
     id: "townhouse",
     name: "Townhouse",
     category: "house",
-    blurb: "Eight townsfolk in brick and shutter. Cloth and rum.",
+    blurb: "Loyal parlors. Rum and cloth. They pay the Crown and sit the bells out.",
     cost: { planks: 16, cloth: 2 },
     terrain: "land",
     workers: 0,
@@ -120,16 +121,17 @@ export const BUILDINGS: BuildingDef[] = [
       { good: "cloth", amount: 1 },
     ],
     storageBonus: 0,
-    liberty: 0.8,
+    liberty: 0.15,
     crosses: 0,
     priority: 22,
     upgradeFrom: "cottage",
+    faction: "tory",
   },
   {
     id: "manor",
     name: "Merchant Manor",
     category: "house",
-    blurb: "Counting-house money. Cigars on the sideboard.",
+    blurb: "Counting-house Tories. Fat tax, quiet bells. The expedition likes these roofs.",
     cost: { planks: 20, cloth: 4 },
     terrain: "land",
     workers: 0,
@@ -143,16 +145,17 @@ export const BUILDINGS: BuildingDef[] = [
       { good: "cigars", amount: 1 },
     ],
     storageBonus: 0,
-    liberty: 1,
+    liberty: -0.6,
     crosses: 0,
     priority: 23,
     upgradeFrom: "townhouse",
+    faction: "tory",
   },
   {
     id: "patriot",
     name: "Patriot Hall",
     category: "house",
-    blurb: "Sons of Liberty. Coats, bells, and a hard stare at the Crown.",
+    blurb: "Sons of Liberty. Coats and a hard stare. They do not pay as the manors do.",
     cost: { planks: 24, coats: 2 },
     terrain: "land",
     workers: 0,
@@ -169,7 +172,8 @@ export const BUILDINGS: BuildingDef[] = [
     liberty: 2.5,
     crosses: 0,
     priority: 24,
-    upgradeFrom: "manor",
+    upgradeFrom: "townhouse",
+    faction: "patriot",
   },
   {
     id: "farm",
@@ -937,7 +941,7 @@ export function isUnlocked(def: BuildingDef, state: GameState) {
     case "silver":
       return pop >= 24 && hasBuilding(state, "weaver");
     case "patriot":
-      return libertyPercent(state) >= 40 && hasBuilding(state, "manor");
+      return libertyPercent(state) >= 25 && hasBuilding(state, "townhouse");
     case "palace":
       return hasBuilding(state, "hall") && (libertyPercent(state) >= 35 || pop >= 28);
     default:
@@ -950,9 +954,9 @@ export function houseGold(def: BuildingDef, satisfied: boolean, state: GameState
   const base: Record<string, number> = {
     hut: 2,
     cottage: 6,
-    townhouse: 11,
-    manor: 18,
-    patriot: 14,
+    townhouse: 12,
+    manor: 22,
+    patriot: 10,
   };
   const n = base[def.id] ?? 2;
   const ham = state.fathers.includes("hamilton") ? 1.2 : 1;

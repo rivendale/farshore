@@ -19,6 +19,7 @@ import {
   yieldMult,
 } from "@/game/data/people";
 import { adjacentChop } from "@/game/sim/world";
+import { houseFaction, isLandingTile, playerPower } from "@/game/sim/war";
 import { useGame } from "@/game/store";
 import type { BuildingId, GoodId, Stock } from "@/game/types";
 import { Hammer, Trash2, X } from "lucide-react";
@@ -124,6 +125,7 @@ function TileDetail() {
   const assignJob = useGame((s) => s.assignJob);
   const unassignJob = useGame((s) => s.unassignJob);
   if (!tile) return null;
+  if (isLandingTile(state, island.id, tile.x, tile.y)) return <LandingDetail />;
   const b = island.buildings.find((bb) => bb.x === tile.x && bb.y === tile.y);
   if (!b) return <p className="text-sm text-muted">Empty plot.</p>;
   const def = BUILDING_BY_ID[b.type];
@@ -141,12 +143,13 @@ function TileDetail() {
       </div>
     );
   }
-  const next = (
-    { hut: "cottage", cottage: "townhouse", townhouse: "manor", manor: "patriot" } as Partial<
-      Record<BuildingId, BuildingId>
-    >
+  const nexts = (
+    {
+      hut: ["cottage"],
+      cottage: ["townhouse"],
+      townhouse: ["manor", "patriot"],
+    } as Partial<Record<BuildingId, BuildingId[]>>
   )[b.type];
-  const nextDef = next ? BUILDING_BY_ID[next] : null;
   const crew = workersOn(state, b.id);
   const residents = residentsOn(state, b.id);
   const want = JOB_PROFESSION[b.type];
@@ -165,7 +168,13 @@ function TileDetail() {
                 ? `Idle — ${crew.length}/${def.workers} hands`
                 : `Working · ${crew.length}/${def.workers}`
               : def.category === "house"
-                ? `${residents.length}/${def.popCap} souls`
+                ? `${residents.length}/${def.popCap} souls${
+                    houseFaction(b.type) === "tory"
+                      ? " · Tory"
+                      : houseFaction(b.type) === "patriot"
+                        ? " · Patriot"
+                        : ""
+                  }`
                 : "Standing"}
           </p>
         </div>
@@ -264,19 +273,58 @@ function TileDetail() {
         </div>
       ) : null}
 
-      <div className="mt-3 flex gap-2">
-        {nextDef && isUnlocked(nextDef, state) ? (
-          <Button size="sm" onClick={() => upgrade()}>
-            <Hammer className="size-4" />
-            {nextDef.name}
-          </Button>
-        ) : null}
+      <div className="mt-3 flex flex-col gap-2">
+        {(nexts ?? []).map((id) => {
+          const nd = BUILDING_BY_ID[id];
+          if (!isUnlocked(nd, state)) return null;
+          return (
+            <div key={id}>
+              <Button size="sm" onClick={() => upgrade(id)}>
+                <Hammer className="size-4" />
+                {nd.name}
+              </Button>
+              <CostRow cost={nd.cost} />
+            </div>
+          );
+        })}
         <Button size="sm" variant="quiet" onClick={() => demolish()}>
           <Trash2 className="size-4" />
           Tear down
         </Button>
       </div>
-      {nextDef ? <CostRow cost={nextDef.cost} /> : null}
+    </div>
+  );
+}
+
+function LandingDetail() {
+  const war = useGame((s) => s.war);
+  const militia = useGame((s) => s.militia);
+  const commitMilitia = useGame((s) => s.commitMilitia);
+  const engage = useGame((s) => s.engage);
+  const state = useGame();
+  if (!war?.landed) return null;
+  const title =
+    war.kind === "native" ? "War party" : war.kind === "revolution" ? "Royal landing" : "Punitive raid";
+  const power = playerPower(state, war.committed);
+  return (
+    <div>
+      <p className="font-display text-xl leading-tight">{title}</p>
+      <p className="mt-1 text-sm text-muted">
+        Host {war.enemy} · committed {war.committed}/6 · your weight {power}
+      </p>
+      <p className="mt-2 text-sm leading-relaxed text-muted">
+        Send companies onto the sand. Three is a fight. Six is a crush. Time is stopped until you
+        press play — they will not wait forever.
+      </p>
+      <p className="mt-2 text-sm">Militia in reserve {militia}</p>
+      <div className="mt-3 flex flex-col gap-2">
+        <Button size="sm" onClick={() => commitMilitia()} disabled={militia <= 0 || war.committed >= 6}>
+          Send a company
+        </Button>
+        <Button size="sm" variant={war.committed >= 3 ? "primary" : "ghost"} onClick={() => engage()} disabled={war.committed < 1}>
+          Stand and fight
+        </Button>
+      </div>
     </div>
   );
 }

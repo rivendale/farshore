@@ -8,7 +8,6 @@ import {
   houseGold,
   islandPop,
   libertyPercent,
-  totalPop,
 } from "@/game/data/catalog";
 import { JOB_PROFESSION, professionName, refreshPeople, workerMult, workersOn } from "@/game/data/people";
 import { recoverPrices, tickRoutes } from "@/game/sim/routes";
@@ -22,8 +21,8 @@ import type {
   IslandId,
   Stock,
 } from "@/game/types";
-import { resolveBattle } from "@/game/sim/combat";
 import { tickNatives, tickRival } from "@/game/sim/world";
+import { concludeWar, landHost } from "@/game/sim/war";
 
 function pushLog(state: GameState, text: string, tone: GameEvent["tone"]) {
   state.log.unshift({ id: uid("ev"), day: state.day, text, tone });
@@ -293,37 +292,24 @@ function tickCrown(state: GameState) {
 
 function tickWar(state: GameState) {
   if (!state.war || state.war.resolved) return;
-  state.war.eta -= 1;
-  if (state.war.eta > 0) return;
-  const bonus = (state.fathers.includes("washington") ? 1.25 : 1) * (1 + totalPop(state) / 80);
-  const player = Math.round((state.militia * 2 + musketsInEmpire(state)) * bonus);
-  const result = resolveBattle(player, state.war.enemy, state.seed + state.day);
-  state.militia = Math.max(0, state.militia - result.playerLosses);
-  state.war.resolved = true;
-  state.war.result = result.won ? "won" : "lost";
-  if (result.won) {
-    if (state.war.kind === "revolution") {
-      state.independent = true;
-      state.taxRate = 0;
-      state.ending = "republic";
-      state.screen = "victory";
-      pushLog(state, "The royal line breaks. Farshore is a free republic.", "good");
-    } else {
-      pushLog(state, "The punitive raid is driven into the surf.", "good");
-      state.liberty += 8;
-    }
-  } else {
-    state.liberty = Math.max(0, state.liberty * 0.7);
-    state.gold = Math.max(0, state.gold - 40);
-    pushLog(state, "The Crown bloodies the beach. Bells fall quiet.", "bad");
+  if (!state.war.landed) {
+    state.war.eta -= 1;
+    if (state.war.eta > 0) return;
+    landHost(state);
+    return;
   }
-  if (state.war.kind !== "revolution" || !result.won) {
-    state.war = null;
+  if (state.speed === 0) return;
+  state.war.grace -= 1;
+  if (state.war.grace === 3) {
+    state.log.unshift({
+      id: `w-${state.day}`,
+      day: state.day,
+      text: "The landing will not wait. Three days.",
+      tone: "warn",
+    });
+    state.log = state.log.slice(0, 40);
   }
-}
-
-function musketsInEmpire(state: GameState) {
-  return state.islands.reduce((n, i) => n + (i.storage.muskets ?? 0), 0);
+  if (state.war.grace <= 0) concludeWar(state);
 }
 
 function checkCharterVictory(state: GameState) {

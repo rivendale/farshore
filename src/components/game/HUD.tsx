@@ -2,7 +2,7 @@ import { GoodIcon } from "@/components/game/GoodIcon";
 import { GOODS, libertyPercent, totalPop, totalStock } from "@/game/data/catalog";
 import { idleHands } from "@/game/data/people";
 import { useGame } from "@/game/store";
-import type { PlayView } from "@/game/types";
+import type { PlayView, WarState } from "@/game/types";
 import { Anchor, Crown, Map, Pause, Play, Mountain } from "lucide-react";
 import { useState } from "react";
 
@@ -12,6 +12,13 @@ const NAV: { id: PlayView; label: string; icon: typeof Map }[] = [
   { id: "hold", label: "Hold", icon: Anchor },
   { id: "crown", label: "Crown", icon: Crown },
 ];
+
+function warBanner(war: WarState) {
+  const who =
+    war.kind === "native" ? "War party" : war.kind === "revolution" ? "Royal expedition" : "Punitive raid";
+  if (war.landed) return `${who} on the strand · tap`;
+  return `${who} · ${war.eta}d`;
+}
 
 export function HUD() {
   const gold = useGame((s) => s.gold);
@@ -29,6 +36,7 @@ export function HUD() {
   const lumber = island.storage.lumber ?? 0;
   const planks = island.storage.planks ?? 0;
   const [stores, setStores] = useState(false);
+  const war = state.war && !state.war.resolved ? state.war : null;
 
   return (
     <>
@@ -85,11 +93,18 @@ export function HUD() {
         ) : null}
       </header>
 
-      {state.war && !state.war.resolved ? (
+      {war ? (
         <div className="pointer-events-none absolute inset-x-0 top-[5.8rem] z-20 flex justify-center px-4">
-          <p className="rounded-full border border-bad/40 bg-bg/80 px-3 py-1 text-xs text-fg">
-            {state.war.kind === "revolution" ? "Royal expedition" : "Raid"} in {state.war.eta}d
-          </p>
+          <button
+            type="button"
+            className="pointer-events-auto h-10 rounded-full border border-bad/50 bg-bg/90 px-4 text-xs text-fg shadow-[var(--shadow-panel)]"
+            onClick={() => {
+              if (war.landed) state.openLanding();
+              else setView("crown");
+            }}
+          >
+            {warBanner(war)}
+          </button>
         </div>
       ) : null}
 
