@@ -7,10 +7,10 @@ import { Anchor, Crown, Map, Pause, Play, Mountain } from "lucide-react";
 import { useState } from "react";
 
 const NAV: { id: PlayView; label: string; icon: typeof Map }[] = [
-  { id: "island", label: "Isle", icon: Mountain },
-  { id: "world", label: "Chart", icon: Map },
-  { id: "hold", label: "Hold", icon: Anchor },
-  { id: "crown", label: "Crown", icon: Crown },
+  { id: "island", label: "Island", icon: Mountain },
+  { id: "world", label: "Map", icon: Map },
+  { id: "hold", label: "Ship", icon: Anchor },
+  { id: "crown", label: "King", icon: Crown },
 ];
 
 function warBanner(war: WarState) {
@@ -24,7 +24,7 @@ function warBanner(war: WarState) {
           : war.kind === "rival"
             ? "Rival host"
             : "Punitive raid";
-  if (war.landed) return `${who} on the strand · tap`;
+  if (war.landed) return `${who} on the beach · tap`;
   return `${who} · ${war.eta}d`;
 }
 
@@ -90,7 +90,7 @@ export function HUD() {
             Day {day} · {island.name}
           </span>
           <span className="tabular">
-            {pop} souls{idle ? ` · ${idle} idle` : ""} · liberty {pct}% · hold{" "}
+            {pop} people{idle ? ` · ${idle} idle` : ""} · {pct}% free ·{" "}
             {totalStock(island.storage)}/{island.storageCap}
           </span>
         </div>

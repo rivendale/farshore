@@ -21,25 +21,25 @@ export function VictoryScreen() {
       <div className="absolute inset-0 bg-gradient-to-b from-bg/30 to-bg" />
       <div className="relative z-10 mx-auto flex w-full max-w-lg flex-1 flex-col justify-end px-6 pb-10 pt-16">
         <p className="font-display text-sm tracking-[0.22em] text-accent uppercase">
-          {republic ? "Independence" : "Charter eternal"}
+          {republic ? "Independence" : "Loyal colony"}
         </p>
         <h1 className="mt-2 font-display text-4xl leading-tight">
-          {republic ? "The Crown is a rumor." : "A palace on Farshore."}
+          {republic ? "You won independence." : "The palace stands."}
         </h1>
         <p className="mt-4 text-base leading-relaxed text-muted">
           {republic
-            ? "Militia held the strand. The expedition broke. The colony writes its own laws now."
-            : "You stayed within the letter of the charter and built a capital the old country cannot ignore."}
+            ? "The militia held the beach. The King's army broke. The colony writes its own laws now."
+            : "You stayed loyal, built a capital, and the old country cannot ignore you."}
         </p>
         <p className="mt-4 text-sm text-muted">
-          Day {day} · {totalPop(state)} souls · liberty {libertyPercent(state)}%
+          Day {day} · {totalPop(state)} people · independence {libertyPercent(state)}%
         </p>
         <div className="mt-8 flex flex-col gap-3">
           <Button size="lg" onClick={() => setScreen("play")}>
             Keep playing
           </Button>
           <Button size="lg" variant="ghost" onClick={abandon}>
-            New charter
+            New Game
           </Button>
         </div>
       </div>

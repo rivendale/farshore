@@ -159,14 +159,14 @@ export function landHost(state: GameState) {
   autoMarch(state);
   const who =
     war.kind === "native"
-      ? "War parties on the strand"
+      ? "War parties on the beach"
       : war.kind === "revolution"
-        ? "The royal expedition makes the beach"
+        ? "The King's army makes the beach"
         : war.kind === "campaign"
           ? `Your companies make the beach at ${isle.name}`
           : war.kind === "rival"
-            ? `${state.rival?.name ?? "A rival flag"} grounds on the strand`
-            : "A punitive squadron grounds";
+            ? `${state.rival?.name ?? "A rival flag"} lands on the beach`
+            : "A punitive squadron lands";
   const extra = war.marched > 0 ? ` ${war.marched} walked from the barracks.` : " Commit militia.";
   pushLog(state, `${who}.${extra} Time is stopped.`, war.kind === "campaign" ? "warn" : "bad");
 }
@@ -196,7 +196,7 @@ function lootCampaign(state: GameState) {
     const silver = isle.buildings.find((b) => b.type === "silver");
     if (silver) isle.buildings = isle.buildings.filter((b) => b.id !== silver.id);
   }
-  pushLog(state, `You lift the hold at ${rival.name}. Ore in the hull, silver on the books.`, "good");
+  pushLog(state, `You take the stores at ${rival.name}. Ore in the ship, silver in the books.`, "good");
 }
 
 export function concludeWar(state: GameState) {

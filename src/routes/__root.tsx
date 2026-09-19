@@ -19,7 +19,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Found a New World colony. Build production chains, trade with Europe, treat with native nations, and win independence.",
+          "Found the colony. Establish the supply chains. Trade with Europe. Win independence.",
       },
     ],
     links: [

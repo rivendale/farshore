@@ -36,7 +36,7 @@ function shell({ js, css }) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0c1210">
-  <meta name="description" content="Found a New World colony. Build production chains, trade with Europe, treat with native nations, and win independence.">
+  <meta name="description" content="Found the colony. Establish the supply chains. Trade with Europe. Win independence.">
   <title>Farshore</title>
   <link rel="icon" type="image/svg+xml" href="${BASE}favicon.svg">
 ${cssLink}  <link rel="preconnect" href="https://fonts.googleapis.com">

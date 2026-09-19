@@ -30,13 +30,14 @@ export function TitleScreen() {
         <div className="absolute inset-0 bg-gradient-to-b from-bg/40 via-bg/75 to-bg" />
         <div className="relative z-10 mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-8 pt-[max(2.5rem,env(safe-area-inset-top))]">
           <p className="font-display text-sm tracking-[0.22em] text-accent uppercase">
-            Choose a flag
+            Choose a nation
           </p>
           <h1 className="mt-2 font-display text-4xl font-medium leading-tight tracking-tight">
-            Whose charter?
+            Who founds the colony?
           </h1>
           <p className="mt-3 max-w-md text-base leading-relaxed text-muted">
-            Four crowns, one New World. The rest is timber, rum, and nerve.
+            Four nations. One New World. Build supply chains, trade with Europe, win independence —
+            or stay loyal and raise a palace.
           </p>
           <div className="mt-6 flex flex-col gap-3">
             {(Object.keys(NATIONS) as NationId[]).map((id) => {
@@ -81,17 +82,17 @@ export function TitleScreen() {
       <div className="absolute inset-0 bg-gradient-to-b from-bg/20 via-bg/35 to-bg" />
       <div className="relative z-10 mt-auto flex w-full flex-col px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-10">
         <p className="font-display text-sm tracking-[0.28em] text-primary uppercase">
-          A New World charter
+          Colony sim
         </p>
         <h1 className="mt-2 font-display text-[3.4rem] font-medium leading-[0.95] tracking-[-0.03em]">
           Farshore
         </h1>
         <p className="mt-4 max-w-sm text-base leading-relaxed text-fg/90">
-          Found the colony. Feed the chains. Trade the seas. Win your freedom from the Crown.
+          Found the colony. Establish the supply chains. Win independence.
         </p>
         <div className="mt-8 flex flex-col gap-3">
           <Button size="lg" onClick={() => setScreen("nation")}>
-            New charter
+            New Game
           </Button>
           {hasSave ? (
             <Button variant="ghost" size="lg" onClick={() => setScreen("play")}>

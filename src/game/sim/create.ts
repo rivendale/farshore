@@ -41,7 +41,7 @@ export function createGame(nationId: NationId, seed = Date.now()): GameState {
     ships: [
       {
         id: shipId,
-        name: "Charter",
+        name: "Hope",
         cargoCap: nation.cargo,
         cargo: {},
         location: "haven",
@@ -63,7 +63,7 @@ export function createGame(nationId: NationId, seed = Date.now()): GameState {
       {
         id: uid("ev"),
         day: 1,
-        text: `The ${nation.name} charter makes landfall on Haven Isle.`,
+        text: `${nation.name} founds a colony on Haven Isle.`,
         tone: "good",
       },
     ],

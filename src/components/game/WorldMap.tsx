@@ -68,7 +68,7 @@ export function WorldMap() {
               )}
             </span>
             <span className="mt-1 block min-w-[7rem] font-display text-sm text-fg drop-shadow">
-              {known ? isle.name : "Uncharted"}
+              {known ? isle.name : "Unknown"}
               {taken ? ` · ${rival!.name}` : here.length ? ` · ${here.map((s) => s.name).join(", ")}` : ""}
             </span>
           </button>
@@ -160,7 +160,7 @@ export function WorldMap() {
                   onClick={() => explore(isle.id)}
                   disabled={!ship || ship.mission !== "idle" || !homeDock}
                 >
-                  {homeDock ? `Send ${ship?.name ?? "caravel"}` : "Need a wharf first"}
+                  {homeDock ? `Send ${ship?.name ?? "ship"}` : "Need a dock first"}
                 </Button>
               </div>
             );
@@ -168,7 +168,7 @@ export function WorldMap() {
           {islands.every((i) => i.discovered) ? (
             <div className="flex flex-col gap-2">
               <p className="text-sm text-muted">
-                All four shores are charted. {ship?.name ?? "The ship"} sails on your order.
+                All four islands are found. {ship?.name ?? "The ship"} sails on your order.
               </p>
               <div className="flex flex-wrap gap-2">
                 {islands

@@ -1,10 +1,10 @@
 # Farshore
 
-Mobile colony sim. Paragon Pioneers production chains on a New World chart, with Colonization’s Europe trade, native diplomacy, liberty bells, and a war of independence.
+Mobile colony sim. Found the colony, establish the supply chains, trade with Europe, and win independence — or stay loyal and raise a palace.
 
 Play it: [rivendale.github.io/farshore](https://rivendale.github.io/farshore/)
 
-Touch-first, portrait. Land on Haven Isle, raise a hut, farm, and lumber camp, mill planks, build a wharf, and clear for Europe. Chart Kaneska, Iron Cape, and Cinder Cay. Pay the Crown, or don’t.
+Touch-first, portrait. Land on Haven Isle, raise a hut, farm, and lumber camp, mill planks, build a dock, and sail to Europe. Map Kaneska, Iron Cape, and Cinder Cay. Pay the King, or don’t.
 
 ## Play
 

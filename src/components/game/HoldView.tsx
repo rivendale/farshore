@@ -43,7 +43,7 @@ export function HoldView() {
 
   return (
     <div className="absolute inset-0 flex flex-col overflow-y-auto bg-bg px-4 pb-28 pt-24">
-      <p className="font-display text-sm tracking-[0.18em] text-accent uppercase">The hold</p>
+      <p className="font-display text-sm tracking-[0.18em] text-accent uppercase">The ship</p>
       {ships.length > 1 ? (
         <div className="mt-2 flex gap-2">
           {ships.map((s) => (
@@ -109,7 +109,7 @@ export function HoldView() {
         <div className="mt-4 rounded-[var(--radius-lg)] border border-border bg-surface p-3">
           <p className="font-display text-lg">Europe</p>
           <p className="mt-1 text-sm text-muted">
-            Treasury {gold}g · Crown tariff {tax}%
+            Treasury {gold}g · King tax {tax}%
           </p>
           <div className="mt-3 flex flex-col gap-2">
             {PROFESSIONS.filter((p) =>
@@ -135,11 +135,11 @@ export function HoldView() {
       ) : (
         <div className="mt-4 flex flex-col gap-2">
           <Button disabled={atSea} onClick={() => sailEurope()}>
-            Clear for Europe · 8 days
+            Sail to Europe · 8 days
           </Button>
           <p className="text-sm text-muted">
-            Load finished goods from the isle, sell them in Europe, or set a looping route and let the
-            ship work.
+            Load goods from the island, sell them in Europe, or set a looping route and let the ship
+            work.
           </p>
         </div>
       )}
@@ -166,15 +166,15 @@ export function HoldView() {
           {ships.length >= 3
             ? "Fleet is full"
             : europeVisited
-              ? `Buy a hull · 200g (${SHIP_LEFT[ships.length] ?? "Hull"})`
-              : "Chart Europe to buy a second hull"}
+              ? `Buy a ship · 200g (${SHIP_LEFT[ships.length] ?? "Ship"})`
+              : "Sail to Europe first to buy a second ship"}
         </Button>
       </div>
     </div>
   );
 }
 
-const SHIP_LEFT = ["Charter", "Packet", "Sloop"];
+const SHIP_LEFT = ["Hope", "Packet", "Sloop"];
 
 function RouteEditor({
   shipName,

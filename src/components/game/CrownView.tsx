@@ -15,19 +15,19 @@ export function CrownView() {
 
   return (
     <div className="absolute inset-0 flex flex-col overflow-y-auto bg-bg px-4 pb-36 pt-24">
-      <p className="font-display text-sm tracking-[0.18em] text-accent uppercase">The Crown</p>
+      <p className="font-display text-sm tracking-[0.18em] text-accent uppercase">The King</p>
       <h2 className="mt-1 font-display text-3xl">
-        {state.independent ? "A free republic" : "Sons of Liberty"}
+        {state.independent ? "A free republic" : "Independence"}
       </h2>
       <p className="mt-2 text-sm leading-relaxed text-muted">
-        Bells against bodies. When the people stand at fifty, you may declare. Then you must meet
-        the host on the sand.
+        Raise independence to 50%, then declare. Fight the King's army on the beach — or stay loyal
+        and win with a palace instead.
       </p>
 
       <div className="mt-5 rounded-[var(--radius-lg)] border border-border bg-surface p-4">
         <div className="flex items-end justify-between">
           <span className="font-display text-4xl tabular">{pct}%</span>
-          <span className="text-sm text-muted">tariff {state.taxRate}%</span>
+          <span className="text-sm text-muted">tax {state.taxRate}%</span>
         </div>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-2">
           <div
@@ -36,22 +36,22 @@ export function CrownView() {
           />
         </div>
         <p className="mt-3 text-sm text-muted">
-          Pop {pop} · militia {state.militia} · on the beach {state.settlers} · idle hands{" "}
+          Pop {pop} · militia {state.militia} · waiting for homes {state.settlers} · idle{" "}
           {state.colonists.filter((c) => c.homeId && !c.jobId).length}
         </p>
         {state.rival?.claimed ? (
           <p className="mt-2 text-sm text-muted">
-            {state.rival.name} rings {Math.round(state.rival.liberty)} bells. The expedition will
+            {state.rival.name} is at {Math.round(state.rival.liberty)}% independence. The King will
             notice.
           </p>
         ) : null}
       </div>
 
       <div className="mt-4 rounded-[var(--radius-lg)] border border-border bg-surface p-4">
-        <p className="font-display text-lg">The house split</p>
+        <p className="font-display text-lg">Loyalists and patriots</p>
         <p className="mt-1 text-sm leading-relaxed text-muted">
-          A townhouse forks. Manors keep Tory gold and dull the bells. Patriot halls ring louder
-          and stiffen the militia — Tories on the roofs become a fifth column when the host lands.
+          A townhouse can go two ways. Manors stay loyal to the King and pay more tax. Patriot halls
+          raise independence — but loyalists on the roofs turn against you when the army lands.
         </p>
         <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-surface-2">
           <div className="h-full bg-bad" style={{ width: `${(factions.tory / housed) * 100}%` }} />
@@ -65,7 +65,7 @@ export function CrownView() {
           />
         </div>
         <p className="mt-2 text-xs text-muted">
-          Tories {factions.tory} · unaligned {factions.unaligned} · Patriots {factions.patriot}
+          Loyalists {factions.tory} · unaligned {factions.unaligned} · Patriots {factions.patriot}
         </p>
       </div>
 
@@ -75,8 +75,8 @@ export function CrownView() {
           {war.landed ? (
             <>
               <p className="mt-1 text-sm text-muted">
-                {war.kind === "campaign" ? "Your companies" : "Host"} {war.enemy} on the strand at{" "}
-                {landingIsle?.name ?? "the isle"}. Committed {war.committed}/6
+                {war.kind === "campaign" ? "Your companies" : "Enemy"} {war.enemy} on the beach at{" "}
+                {landingIsle?.name ?? "the island"}. Sent {war.committed}/6
                 {war.marched ? ` · ${war.marched} marched` : ""}. Time is stopped; {war.grace} days if
                 you press play.
               </p>
@@ -86,8 +86,8 @@ export function CrownView() {
             </>
           ) : (
             <p className="mt-1 text-sm text-muted">
-              Enemy host {war.enemy} · landfall in {war.eta} days. A stockade on the strand cuts the
-              host. Soldiers in a barracks walk onto the sand.
+              Enemy {war.enemy} · lands in {war.eta} days. A stockade on the beach cuts the attack.
+              Soldiers in a barracks walk onto the sand.
             </p>
           )}
         </div>
@@ -111,11 +111,11 @@ export function CrownView() {
           Declare independence
         </Button>
         <Button variant="quiet" onClick={() => state.refuseTax()} disabled={state.independent}>
-          Refuse the next tariff
+          Refuse the next tax
         </Button>
       </div>
 
-      <h3 className="mt-8 font-display text-xl">Founding voices</h3>
+      <h3 className="mt-8 font-display text-xl">Founders</h3>
       <ul className="mt-3 flex flex-col gap-2">
         {FATHERS.map((f) => {
           const have = state.fathers.includes(f.id);
@@ -134,7 +134,7 @@ export function CrownView() {
         })}
       </ul>
       <Button variant="quiet" className="mt-8" onClick={() => state.abandon()}>
-        Resign this charter
+        Abandon colony
       </Button>
     </div>
   );

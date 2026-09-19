@@ -404,7 +404,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     if (!ship || ship.mission !== "idle") return "The ship is at sea.";
     if (ship.location === "europe") return "Already in Europe.";
     if (ship.location !== "sea" && !hasDock(state, ship.location)) {
-      return "Need a wharf to clear for Europe.";
+      return "Need a dock to sail to Europe.";
     }
     const next = {
       ...state,
@@ -425,7 +425,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     const ship = selectedShip(state);
     if (!ship || ship.location !== "europe") return "Not in Europe.";
     const home = state.selectedIslandId;
-    if (!hasDock(state, home)) return "That isle has no wharf.";
+    if (!hasDock(state, home)) return "That island has no dock.";
     const next = {
       ...state,
       ships: state.ships.map((s) =>
@@ -446,9 +446,9 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     const target = state.islands.find((i) => i.id === id);
     if (!ship || ship.mission !== "idle") return "The ship is at sea.";
     if (!target) return "No such shore.";
-    if (target.discovered) return "Already charted.";
+    if (target.discovered) return "Already found.";
     if (ship.location !== "sea" && ship.location !== "europe" && !hasDock(state, ship.location)) {
-      return "Need a wharf to leave.";
+      return "Need a dock to leave.";
     }
     const next = {
       ...state,
@@ -479,7 +479,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     if (!target?.discovered) return "Unknown waters.";
     if (ship.location === id) return "Already there.";
     if (ship.location !== "europe" && ship.location !== "sea" && !hasDock(state, ship.location)) {
-      return "Need a wharf.";
+      return "Need a dock.";
     }
     const next = {
       ...state,
@@ -570,7 +570,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     if (!ship || ship.location !== "europe") return "Not in Europe.";
     const price = 28;
     if (state.gold < price) return "Need more gold.";
-    if (totalStock(ship.cargo) >= ship.cargoCap) return "Hold is full.";
+    if (totalStock(ship.cargo) >= ship.cargoCap) return "The ship is full.";
     const next = {
       ...state,
       gold: state.gold - price,
@@ -585,11 +585,11 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
 
   buyShip: () => {
     const state = get();
-    if (!state.europeVisited) return "Chart Europe once before you buy another hull.";
-    if (state.ships.length >= 3) return "Three hulls is the charter's limit.";
+    if (!state.europeVisited) return "Sail to Europe once before you buy another ship.";
+    if (state.ships.length >= 3) return "Three ships is the limit.";
     if (state.gold < 200) return "Need 200 gold.";
     const nation = state.nationId ? NATIONS[state.nationId] : NATIONS.england;
-    const name = SHIP_NAMES[state.ships.length] ?? `Hull ${state.ships.length + 1}`;
+    const name = SHIP_NAMES[state.ships.length] ?? `Ship ${state.ships.length + 1}`;
     const loc = hasDock(state, state.selectedIslandId) ? state.selectedIslandId : "haven";
     const ship = {
       id: uid("ship"),
@@ -791,7 +791,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
       liberty: state.liberty + 10,
       war: makeWar("raid", royalHost(state.day, colonies, "raid", state.rival?.liberty ?? 0), 7, "haven"),
     };
-    notify(next, "You refuse the tariff. A punitive squadron is rumored.", "bad");
+    notify(next, "You refuse the tax. A punitive squadron is rumored.", "bad");
     set(next);
     scheduleSave(next);
   },
@@ -799,9 +799,9 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
   declare: () => {
     const state = get();
     if (state.independent) return "Already free.";
-    if (libertyPercent(state) < 50) return "The people are not ready. Raise the bells.";
-    if (totalPop(state) < 16) return "Too few souls to hold a republic.";
-    if (state.militia < 6) return "Raise a militia before you defy the Crown.";
+    if (libertyPercent(state) < 50) return "The people are not ready. Raise independence first.";
+    if (totalPop(state) < 16) return "Too few people to hold a republic.";
+    if (state.militia < 6) return "Raise a militia before you defy the King.";
     const colonies = state.islands.filter((i) => i.owned).length;
     const next: GameState = {
       ...state,
@@ -824,7 +824,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     const war = state.war;
     if (!war || !war.landed || war.resolved) return "No landing to meet.";
     if (state.militia <= 0) return "No militia left. Train them in the barracks.";
-    if (war.committed >= 6) return "The strand is full.";
+    if (war.committed >= 6) return "The beach is full.";
     const next = {
       ...state,
       militia: state.militia - 1,
@@ -871,11 +871,11 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
   raidRival: () => {
     const state = get();
     const rival = state.rival;
-    if (state.war) return "A host is already in the water.";
-    if (!rival?.claimed) return "No foreign flag on the chart.";
+    if (state.war) return "A fight is already underway.";
+    if (!rival?.claimed) return "No foreign flag on the map.";
     const ship = selectedShip(state);
     if (!ship || ship.mission !== "idle" || ship.location !== rival.islandId) {
-      return `Sail a hull to ${rival.name} first.`;
+      return `Sail a ship to ${rival.name} first.`;
     }
     if (state.militia < 1) return "No militia to row ashore.";
     const next: GameState = {

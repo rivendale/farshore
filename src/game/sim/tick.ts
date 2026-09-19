@@ -206,7 +206,7 @@ function tickShips(state: GameState) {
           );
         } else {
           isle.owned = true;
-          pushLog(state, `${ship.name} claims ${isle.name} for the charter.`, "good");
+          pushLog(state, `${ship.name} claims ${isle.name} for the colony.`, "good");
         }
       }
       ship.mission = "idle";
@@ -320,7 +320,7 @@ function checkCharterVictory(state: GameState) {
   ) {
     state.ending = "charter";
     state.screen = "victory";
-    pushLog(state, "The palace rises. The charter stands eternal.", "good");
+    pushLog(state, "The palace rises. The colony stays loyal.", "good");
   }
 }
 

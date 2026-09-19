@@ -33,7 +33,7 @@ export function Inspector() {
       <div className="pointer-events-auto mx-auto max-w-lg overflow-hidden rounded-[var(--radius-xl)] border border-border bg-surface shadow-[var(--shadow-panel)]">
         <div className="flex items-center justify-between px-4 pt-3">
           <p className="font-display text-lg leading-none">
-            {sheet === "build" ? "Raise a work" : sheet === "native" ? "A people already here" : "Plot"}
+            {sheet === "build" ? "Build" : sheet === "native" ? "A people already here" : "Plot"}
           </p>
           <button
             type="button"
@@ -77,7 +77,7 @@ function BuildList() {
   if (!tile) return <p className="px-1 text-sm text-muted">Tap a plot.</p>;
   const here = island.tiles.find((t) => t.x === tile.x && t.y === tile.y);
   if (!here || here.terrain === "water") {
-    return <p className="px-1 text-sm text-muted">Open water. Build a wharf on the strand.</p>;
+    return <p className="px-1 text-sm text-muted">Open water. Build a dock on the beach.</p>;
   }
   const list = BUILDINGS.filter((d) => !d.upgradeFrom).filter((d) => {
     if (!isUnlocked(d, state)) return false;
@@ -86,7 +86,7 @@ function BuildList() {
   if (!list.length) {
     return (
       <p className="px-1 text-sm text-muted">
-        Nothing fits this ground yet. Farms want grass, camps want forest, mines want hills, wharves
+        Nothing fits this ground yet. Farms want grass, camps want forest, mines want hills, docks
         want the coast.
       </p>
     );
@@ -148,8 +148,8 @@ function TileDetail() {
           <div className="mt-3 flex flex-col gap-2">
             <p className="text-sm text-muted">
               {shipHere
-                ? "A hull sits on their tide. Row companies ashore."
-                : `Sail a hull to ${state.rival?.name} first.`}
+                ? "Your ship is here. Send companies ashore."
+                : `Sail a ship to ${state.rival?.name} first.`}
             </p>
             <Button
               size="sm"
@@ -198,9 +198,9 @@ function TileDetail() {
                 ? `Idle — ${crew.length}/${def.workers} hands`
                 : `Working · ${crew.length}/${def.workers}`
               : def.category === "house"
-                ? `${residents.length}/${def.popCap} souls${
+                ? `${residents.length}/${def.popCap} people${
                     houseFaction(b.type) === "tory"
-                      ? " · Tory"
+                      ? " · Loyalist"
                       : houseFaction(b.type) === "patriot"
                         ? " · Patriot"
                         : ""
@@ -353,7 +353,7 @@ function LandingDetail() {
       {fort ? (
         <p className="mt-1 text-sm text-muted">
           {storm
-            ? "Their palisade holds the strand. The host is thicker."
+            ? "Their palisade holds the beach. The defense is thicker."
             : "Your stockade cuts the host."}
         </p>
       ) : null}

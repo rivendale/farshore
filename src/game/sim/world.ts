@@ -165,7 +165,7 @@ export function tickNatives(state: GameState) {
         landHost(state);
         pushLog(
           state,
-          `The ${n.name} come out of the trees on ${isle.name}. Meet them on the strand.`,
+          `The ${n.name} come out of the trees on ${isle.name}. Meet them on the beach.`,
           "bad",
         );
       } else {
@@ -236,7 +236,7 @@ export function tickRival(state: GameState) {
     if (rival.stage === 2) {
       placeOn(isle, "dock", ["sand"]);
       placeOn(isle, "stockade", ["sand"]);
-      pushLog(state, `A wharf and a palisade rise under ${rival.name}.`, "info");
+      pushLog(state, `A dock and a palisade rise under ${rival.name}.`, "info");
     }
     if (rival.stage === 3) {
       placeOn(isle, "mine", ["hills"]);

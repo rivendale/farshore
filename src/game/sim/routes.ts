@@ -69,7 +69,7 @@ export function applyStop(state: GameState, ship: Ship, stop: RouteStop) {
   if (!isle) return;
   const hasDock = isle.buildings.some((b) => b.type === "dock");
   if (!hasDock) {
-    pushLog(state, `${ship.name} finds no wharf at ${isle.name}.`, "warn");
+    pushLog(state, `${ship.name} finds no dock at ${isle.name}.`, "warn");
     return;
   }
 

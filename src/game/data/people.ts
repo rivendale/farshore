@@ -83,7 +83,7 @@ const GIVEN = [
   "Dora",
 ];
 
-export const SHIP_NAMES = ["Charter", "Packet", "Sloop"];
+export const SHIP_NAMES = ["Hope", "Packet", "Sloop"];
 
 export function professionName(id: ProfessionId) {
   return PROFESSION_BY_ID[id]?.name ?? id;

@@ -2,11 +2,11 @@ import { Button } from "@/components/ui/button";
 import { useGame } from "@/game/store";
 
 const STEPS = [
-  "Tap a grass plot and raise a Pioneer Hut. Your landing party needs a roof.",
-  "Place a Farm on grassland. Hungry pioneers will not last.",
-  "Put a Lumber Camp on forest. Axes first, palaces later.",
-  "Build a Sawmill. Planks unlock the wharf and every civic work.",
-  "Raise a Wharf on the coast, load goods, and clear for Europe.",
+  "Tap a grass plot and build a Hut. Found the colony — your people need a home.",
+  "Build a Farm on grassland. People need food.",
+  "Build a Lumber Camp on forest. You need wood for everything else.",
+  "Build a Sawmill. Planks unlock the dock and the rest of the supply chain.",
+  "Build a Dock on the coast, load goods, and sail to Europe.",
 ];
 
 export function Tutorial() {
