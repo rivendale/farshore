@@ -33,6 +33,12 @@ export function CrownView() {
           Pop {pop} · militia {state.militia} · on the beach {state.settlers} · idle hands{" "}
           {state.colonists.filter((c) => c.homeId && !c.jobId).length}
         </p>
+        {state.rival?.claimed ? (
+          <p className="mt-2 text-sm text-muted">
+            {state.rival.name} rings {Math.round(state.rival.liberty)} bells. The expedition will
+            notice.
+          </p>
+        ) : null}
       </div>
 
       {state.war && !state.war.resolved ? (

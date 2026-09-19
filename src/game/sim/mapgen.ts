@@ -81,9 +81,19 @@ export function generateIsland(id: IslandId, seed: number, nativeRel: number): I
       x: pick.x,
       y: pick.y,
       lastGiftDay: -20,
+      taught: false,
+      mapGiven: false,
+      lastRaidDay: -40,
+      vein: null,
     };
     const nt = tiles.find((t) => t.x === pick.x && t.y === pick.y);
     if (nt) nt.terrain = "grass";
+    const cand = tiles.filter(
+      (t) =>
+        (t.terrain === "grass" || t.terrain === "forest") && !(t.x === pick.x && t.y === pick.y),
+    );
+    const vein = cand[Math.floor(rng() * cand.length)];
+    if (vein) native.vein = { x: vein.x, y: vein.y };
   }
 
   const meta = ISLAND_META[id];

@@ -23,6 +23,7 @@ import type {
   Stock,
 } from "@/game/types";
 import { resolveBattle } from "@/game/sim/combat";
+import { tickNatives, tickRival } from "@/game/sim/world";
 
 function pushLog(state: GameState, text: string, tone: GameEvent["tone"]) {
   state.log.unshift({ id: uid("ev"), day: state.day, text, tone });
@@ -198,6 +199,12 @@ function tickShips(state: GameState) {
             `${ship.name} raises ${isle.name}. ${isle.native.name} watch from the treeline.`,
             "warn",
           );
+        } else if (state.rival?.claimed && state.rival.islandId === isle.id) {
+          pushLog(
+            state,
+            `${ship.name} raises ${isle.name}. ${state.rival.name} already flies here.`,
+            "warn",
+          );
         } else {
           isle.owned = true;
           pushLog(state, `${ship.name} claims ${isle.name} for the charter.`, "good");
@@ -336,10 +343,12 @@ function cloneState(state: GameState): GameState {
     ...state,
     islands: state.islands.map((i) => ({
       ...i,
-      tiles: i.tiles,
       buildings: i.buildings.map((b) => ({ ...b })),
       storage: { ...i.storage },
-      native: i.native ? { ...i.native } : null,
+      native: i.native
+        ? { ...i.native, vein: i.native.vein ? { ...i.native.vein } : null }
+        : null,
+      tiles: i.tiles.map((t) => ({ ...t })),
     })),
     ships: state.ships.map((s) => ({
       ...s,
@@ -353,6 +362,9 @@ function cloneState(state: GameState): GameState {
     fathers: [...state.fathers],
     log: [...state.log],
     war: state.war ? { ...state.war } : null,
+    rival: state.rival
+      ? { ...state.rival, cargo: { ...state.rival.cargo } }
+      : null,
   };
 }
 
@@ -368,6 +380,8 @@ export function tickDay(state: GameState): GameState {
   recoverPrices(next, BASE_PRICES);
   tickGrowth(next);
   refreshPeople(next);
+  tickNatives(next);
+  tickRival(next);
   tickFathers(next);
   tickCrown(next);
   tickWar(next);

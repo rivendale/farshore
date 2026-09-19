@@ -9,7 +9,8 @@ export function resolveBattle(playerPower: number, enemyPower: number, seed: num
   return { won, playerLosses, enemyLosses, ratio };
 }
 
-export function royalHost(day: number, colonies: number, kind: "raid" | "revolution") {
-  if (kind === "raid") return 8 + Math.floor(day / 40) + colonies * 2;
-  return 14 + Math.floor(day / 18) + colonies * 5;
+export function royalHost(day: number, colonies: number, kind: "raid" | "revolution", rivalLiberty = 0) {
+  const rival = Math.floor(rivalLiberty / 12);
+  if (kind === "raid") return 8 + Math.floor(day / 40) + colonies * 2 + Math.floor(rival / 2);
+  return 14 + Math.floor(day / 18) + colonies * 5 + rival;
 }

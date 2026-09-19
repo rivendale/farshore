@@ -101,6 +101,10 @@ export type NativeState = {
   x: number;
   y: number;
   lastGiftDay: number;
+  taught: boolean;
+  mapGiven: boolean;
+  lastRaidDay: number;
+  vein: { x: number; y: number } | null;
 };
 
 export type Island = {
@@ -158,6 +162,20 @@ export type WarState = {
   result: "pending" | "won" | "lost";
 };
 
+export type RivalState = {
+  nationId: NationId;
+  name: string;
+  shipName: string;
+  islandId: IslandId;
+  claimed: boolean;
+  claimDay: number;
+  stage: number;
+  shipEta: number;
+  shipAt: "isle" | "sea-out" | "europe" | "sea-home";
+  cargo: Stock;
+  liberty: number;
+};
+
 export type Ending = "none" | "republic" | "charter";
 
 export type GameState = {
@@ -190,6 +208,7 @@ export type GameState = {
   ships: Ship[];
   colonists: Colonist[];
   europeVisited: boolean;
+  rival: RivalState | null;
   prices: Record<GoodId, number>;
   war: WarState | null;
   log: GameEvent[];

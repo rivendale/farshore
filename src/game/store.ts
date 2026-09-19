@@ -276,6 +276,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     const tile = state.selectedTile;
     if (!tile) return;
     const isle = currentIsland(state);
+    if (!isle.owned) return;
     const b = isle.buildings.find((b) => b.x === tile.x && b.y === tile.y);
     if (!b) return;
     const def = BUILDING_BY_ID[b.type];
@@ -749,6 +750,9 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     const native = isle.native;
     if (!native) return "No nation here.";
     if (isle.owned) return "You already keep this shore.";
+    if (state.rival?.claimed && state.rival.islandId === isle.id) {
+      return `${state.rival.name} already flies here.`;
+    }
     if (native.relation < 55) return "They have not granted settlement rights.";
     if (state.gold < 80) return "The gift-price is 80 gold.";
     const islands = state.islands.map((i) =>
@@ -777,7 +781,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
       war: {
         kind: "raid",
         eta: 7,
-        enemy: royalHost(state.day, colonies, "raid"),
+        enemy: royalHost(state.day, colonies, "raid", state.rival?.liberty ?? 0),
         resolved: false,
         result: "pending",
       },
@@ -800,7 +804,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
       war: {
         kind: "revolution",
         eta: 10,
-        enemy: royalHost(state.day, colonies, "revolution"),
+        enemy: royalHost(state.day, colonies, "revolution", state.rival?.liberty ?? 0),
         resolved: false,
         result: "pending",
       },

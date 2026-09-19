@@ -8,6 +8,7 @@ export function IslandView() {
   const island = useGame((s) => s.islands.find((i) => i.id === s.selectedIslandId)!);
   const selected = useGame((s) => s.selectedTile);
   const selectTile = useGame((s) => s.selectTile);
+  const rival = useGame((s) => s.rival);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [cam, setCam] = useState({ x: 0, y: 0, z: 1 });
   const drag = useRef({
@@ -190,9 +191,11 @@ export function IslandView() {
       </div>
       {!island.owned ? (
         <div className="pointer-events-none absolute left-1/2 top-4 z-10 w-[min(90%,20rem)] -translate-x-1/2 rounded-[var(--radius-md)] border border-border bg-bg/80 px-3 py-2 text-center text-sm text-fg backdrop-blur-sm">
-          {island.native
-            ? `${island.native.name} keep this shore. Trade or seek settlement rights.`
-            : "Unclaimed land. Land a ship to settle."}
+          {rival?.claimed && rival.islandId === island.id
+            ? `${rival.name} flies here. You cannot plant a charter on this cape.`
+            : island.native
+              ? `${island.native.name} keep this shore. Trade or seek settlement rights.`
+              : "Unclaimed land. Land a ship to settle."}
         </div>
       ) : null}
     </div>

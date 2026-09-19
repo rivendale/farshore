@@ -11,7 +11,7 @@ import type {
 
 export const DAY_SECONDS = 1.15;
 export const SAVE_KEY = "farshore.save.v1";
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 export const MAP_SIZE = 9;
 
 export const GOODS: {
@@ -724,7 +724,7 @@ export const ISLAND_META: Record<
   },
   iron: {
     name: "Iron Cape",
-    blurb: "Bare hills and a rumor of silver. No one claims it yet.",
+    blurb: "Bare hills and a rumor of silver. Someone will plant a flag.",
     climate: "temperate",
   },
   cinder: {

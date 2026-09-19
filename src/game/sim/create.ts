@@ -1,6 +1,7 @@
 import { BASE_PRICES, NATIONS, SAVE_VERSION } from "@/game/data/catalog";
 import { makeColonist, refreshPeople } from "@/game/data/people";
 import { generateArchipelago } from "@/game/sim/mapgen";
+import { makeRival } from "@/game/sim/world";
 import { uid } from "@/game/sim/rng";
 import type { GameState, GoodId, NationId } from "@/game/types";
 
@@ -55,6 +56,7 @@ export function createGame(nationId: NationId, seed = Date.now()): GameState {
     ],
     colonists: [],
     europeVisited: false,
+    rival: makeRival(nationId),
     prices,
     war: null,
     log: [

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ISLAND_META } from "@/game/data/catalog";
 import { useGame } from "@/game/store";
 import type { IslandId } from "@/game/types";
-import { Anchor, Lock } from "lucide-react";
+import { Anchor, Flag, Lock } from "lucide-react";
 
 const SPOTS: { id: IslandId; top: string; left: string }[] = [
   { id: "haven", top: "58%", left: "28%" },
@@ -21,6 +21,7 @@ export function WorldMap() {
   const explore = useGame((s) => s.explore);
   const transferTo = useGame((s) => s.transferTo);
   const ship = ships.find((s) => s.id === selectedShipId) ?? ships[0];
+  const rival = useGame((s) => s.rival);
   const homeDock = islands.some((i) => i.owned && i.buildings.some((b) => b.type === "dock"));
 
   return (
@@ -35,6 +36,7 @@ export function WorldMap() {
         const isle = islands.find((i) => i.id === spot.id)!;
         const known = isle.discovered;
         const here = ships.filter((s) => s.location === isle.id);
+        const taken = Boolean(rival?.claimed && rival.islandId === isle.id);
         return (
           <button
             key={isle.id}
@@ -47,32 +49,55 @@ export function WorldMap() {
               className={`flex size-11 items-center justify-center rounded-full border ${
                 selected === isle.id
                   ? "border-primary bg-primary text-primary-fg"
-                  : known
-                    ? "border-border-strong bg-surface/90 text-fg"
-                    : "border-border bg-bg/70 text-muted"
+                  : taken
+                    ? "border-bad bg-bg/80 text-bad"
+                    : known
+                      ? "border-border-strong bg-surface/90 text-fg"
+                      : "border-border bg-bg/70 text-muted"
               }`}
             >
-              {known ? <Anchor className="size-4" strokeWidth={1.7} /> : <Lock className="size-4" />}
+              {taken ? (
+                <Flag className="size-4" strokeWidth={1.7} />
+              ) : known ? (
+                <Anchor className="size-4" strokeWidth={1.7} />
+              ) : (
+                <Lock className="size-4" />
+              )}
             </span>
             <span className="mt-1 block min-w-[7rem] font-display text-sm text-fg drop-shadow">
               {known ? isle.name : "Uncharted"}
-              {here.length ? ` · ${here.map((s) => s.name).join(", ")}` : ""}
+              {taken ? ` · ${rival!.name}` : here.length ? ` · ${here.map((s) => s.name).join(", ")}` : ""}
             </span>
           </button>
         );
       })}
-      {ships.some((s) => s.location === "europe" || s.location === "sea") ? (
+      {ships.some((s) => s.location === "europe" || s.location === "sea") ||
+      (rival?.claimed && (rival.shipAt === "sea-out" || rival.shipAt === "sea-home" || rival.shipAt === "europe")) ? (
         <p className="absolute left-1/2 top-6 w-[min(90%,20rem)] -translate-x-1/2 text-center text-sm text-fg drop-shadow">
-          {ships
-            .filter((s) => s.location === "europe" || s.location === "sea")
-            .map((s) =>
-              s.location === "europe" ? `${s.name} in Europe` : `${s.name} at sea · ${s.eta}d`,
-            )
+          {[
+            ...ships
+              .filter((s) => s.location === "europe" || s.location === "sea")
+              .map((s) =>
+                s.location === "europe" ? `${s.name} in Europe` : `${s.name} at sea · ${s.eta}d`,
+              ),
+            rival?.claimed && rival.shipAt === "europe"
+              ? `${rival.shipName} in Europe`
+              : rival?.claimed && (rival.shipAt === "sea-out" || rival.shipAt === "sea-home")
+                ? `${rival.shipName} at sea · ${rival.shipEta}d`
+                : null,
+          ]
+            .filter(Boolean)
             .join(" · ")}
         </p>
       ) : null}
       <div className="absolute inset-x-0 bottom-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto max-w-lg rounded-[var(--radius-lg)] border border-border bg-bg/85 p-4 backdrop-blur-sm">
+          {rival?.claimed ? (
+            <p className="mb-3 text-sm text-muted">
+              {rival.name} holds {ISLAND_META[rival.islandId].name}. Their {rival.shipName} will
+              undercut you in Europe.
+            </p>
+          ) : null}
           {ships.length > 1 ? (
             <div className="mb-3 flex flex-wrap gap-2">
               {ships.map((s) => (

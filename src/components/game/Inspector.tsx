@@ -18,6 +18,7 @@ import {
   workersOn,
   yieldMult,
 } from "@/game/data/people";
+import { adjacentChop } from "@/game/sim/world";
 import { useGame } from "@/game/store";
 import type { BuildingId, GoodId, Stock } from "@/game/types";
 import { Hammer, Trash2, X } from "lucide-react";
@@ -126,6 +127,20 @@ function TileDetail() {
   const b = island.buildings.find((bb) => bb.x === tile.x && bb.y === tile.y);
   if (!b) return <p className="text-sm text-muted">Empty plot.</p>;
   const def = BUILDING_BY_ID[b.type];
+  if (!island.owned) {
+    return (
+      <div>
+        <div className="flex items-center gap-3">
+          <img src={ART[b.type]} alt="" className="size-16 object-contain" />
+          <div>
+            <p className="font-display text-xl leading-tight">{def.name}</p>
+            <p className="text-sm text-muted">Foreign work. Not yours.</p>
+          </div>
+        </div>
+        <p className="mt-2 text-sm leading-relaxed text-muted">{def.blurb}</p>
+      </div>
+    );
+  }
   const next = (
     { hut: "cottage", cottage: "townhouse", townhouse: "manor", manor: "patriot" } as Partial<
       Record<BuildingId, BuildingId>
@@ -275,19 +290,45 @@ function NativeDetail() {
   const settle = useGame((s) => s.nativeSettle);
   if (!native) return <p className="text-sm text-muted">No one keeps this plot.</p>;
   const tribe = TRIBES[native.tribeId];
+  const rel = Math.round(native.relation);
+  const chops = adjacentChop(island, native);
   return (
     <div>
       <div className="flex items-center gap-3">
         <img src={ART.village} alt="" className="size-16 object-contain" />
         <div>
           <p className="font-display text-xl leading-tight">{native.name}</p>
-          <p className="text-sm text-muted">Relations {native.relation}</p>
+          <p className="text-sm text-muted">Relations {rel}</p>
         </div>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2">
+        <div
+          className={`h-full rounded-full ${rel < 25 ? "bg-bad" : rel >= 70 ? "bg-good" : "bg-accent"}`}
+          style={{ width: `${rel}%` }}
+        />
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted">{tribe.blurb}</p>
       <p className="mt-2 text-sm">
         They seek {goodName(tribe.wants)} and offer {goodName(tribe.offers)}.
       </p>
+      <ul className="mt-2 flex flex-col gap-1 text-sm text-muted">
+        {chops ? <li>Axes too close to the village. Trust falls.</li> : null}
+        {native.mapGiven ? (
+          <li>They showed you a seam in the hills.</li>
+        ) : rel >= 50 ? (
+          <li>They know a seam. Keep the talks warm.</li>
+        ) : (
+          <li>Maps come with trust — around fifty.</li>
+        )}
+        {native.taught ? (
+          <li>A teacher lives among you.</li>
+        ) : rel >= 70 ? (
+          <li>A teacher is ready to walk to your colony.</li>
+        ) : (
+          <li>At seventy they will send a teacher.</li>
+        )}
+        {island.owned && rel < 25 ? <li>The treeline is angry. Raids will come.</li> : null}
+      </ul>
       <div className="mt-3 flex flex-col gap-2">
         <Button size="sm" variant="ghost" onClick={() => gift()}>
           Gift 25 gold
