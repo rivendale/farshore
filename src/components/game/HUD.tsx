@@ -15,7 +15,15 @@ const NAV: { id: PlayView; label: string; icon: typeof Map }[] = [
 
 function warBanner(war: WarState) {
   const who =
-    war.kind === "native" ? "War party" : war.kind === "revolution" ? "Royal expedition" : "Punitive raid";
+    war.kind === "native"
+      ? "War party"
+      : war.kind === "revolution"
+        ? "Royal expedition"
+        : war.kind === "campaign"
+          ? "Cape raid"
+          : war.kind === "rival"
+            ? "Rival host"
+            : "Punitive raid";
   if (war.landed) return `${who} on the strand · tap`;
   return `${who} · ${war.eta}d`;
 }

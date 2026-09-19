@@ -1,7 +1,8 @@
-import { NATIONS, addStock, payStock } from "@/game/data/catalog";
+import { BASE_PRICES, NATIONS, addStock, payStock } from "@/game/data/catalog";
 import { makeColonist, refreshPeople } from "@/game/data/people";
 import { uid } from "@/game/sim/rng";
 import { fillWar, landHost, makeWar } from "@/game/sim/war";
+import { rivalHost } from "@/game/sim/combat";
 import type {
   BuildingInst,
   GameState,
@@ -47,6 +48,7 @@ export function makeRival(player: NationId | null): RivalState {
     shipAt: "isle",
     cargo: {},
     liberty: 0,
+    lastRaidDay: -80,
   };
 }
 
@@ -233,7 +235,8 @@ export function tickRival(state: GameState) {
     rival.stage += 1;
     if (rival.stage === 2) {
       placeOn(isle, "dock", ["sand"]);
-      pushLog(state, `A wharf rises under ${rival.name}.`, "info");
+      placeOn(isle, "stockade", ["sand"]);
+      pushLog(state, `A wharf and a palisade rise under ${rival.name}.`, "info");
     }
     if (rival.stage === 3) {
       placeOn(isle, "mine", ["hills"]);
@@ -275,6 +278,22 @@ export function tickRival(state: GameState) {
     rival.shipAt = "sea-out";
     rival.shipEta = 8;
   }
+
+  const oreCheap = state.prices.ore < BASE_PRICES.ore * 0.85;
+  const gap = oreCheap ? 14 : 22;
+  if (
+    !state.war &&
+    rival.claimed &&
+    rival.stage >= 3 &&
+    state.europeVisited &&
+    state.day - (rival.lastRaidDay ?? -80) >= gap &&
+    rival.liberty >= 14
+  ) {
+    rival.lastRaidDay = state.day;
+    const home = state.islands.find((i) => i.owned)?.id ?? "haven";
+    state.war = makeWar("rival", rivalHost(rival.stage, rival.liberty), 5, home);
+    pushLog(state, `${rival.name} rows a company toward your shore.`, "bad");
+  }
 }
 
 export function migrateWorld(state: GameState): GameState {
@@ -283,15 +302,24 @@ export function migrateWorld(state: GameState): GameState {
     islands: state.islands.map((i) => ({
       ...i,
       native: i.native ? fillNative(i.native, i) : null,
+      buildings: i.buildings.map((b) => ({ ...b })),
     })),
     rival: state.rival
       ? {
           ...state.rival,
           cargo: { ...state.rival.cargo },
           shipName: state.rival.shipName ?? RIVAL_POSTS[state.rival.nationId]?.ship ?? "Packet",
+          lastRaidDay: state.rival.lastRaidDay ?? -80,
         }
       : makeRival(state.nationId),
     war: fillWar(state.war),
   };
+  const rival = next.rival;
+  if (rival?.claimed && rival.stage >= 2) {
+    const iron = next.islands.find((i) => i.id === rival.islandId);
+    if (iron && !iron.buildings.some((b) => b.type === "stockade")) {
+      placeOn(iron, "stockade", ["sand"]);
+    }
+  }
   return next;
 }

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { FATHERS, libertyPercent, totalPop } from "@/game/data/catalog";
-import { factionPops } from "@/game/sim/war";
+import { factionPops, warLabel } from "@/game/sim/war";
 import { useGame } from "@/game/store";
 
 export function CrownView() {
@@ -11,12 +11,7 @@ export function CrownView() {
   const housed = Math.max(1, factions.tory + factions.patriot + factions.unaligned);
   const war = state.war && !state.war.resolved ? state.war : null;
   const landingIsle = war ? state.islands.find((i) => i.id === war.islandId) : null;
-  const warTitle =
-    war?.kind === "native"
-      ? "War party"
-      : war?.kind === "revolution"
-        ? "War of independence"
-        : "Punitive raid";
+  const warTitle = war ? warLabel(war.kind, war.landed) : "";
 
   return (
     <div className="absolute inset-0 flex flex-col overflow-y-auto bg-bg px-4 pb-36 pt-24">
@@ -80,17 +75,19 @@ export function CrownView() {
           {war.landed ? (
             <>
               <p className="mt-1 text-sm text-muted">
-                Host {war.enemy} on the strand at {landingIsle?.name ?? "the isle"}. Committed{" "}
-                {war.committed}/6. Time is stopped; {war.grace} days if you press play.
+                {war.kind === "campaign" ? "Your companies" : "Host"} {war.enemy} on the strand at{" "}
+                {landingIsle?.name ?? "the isle"}. Committed {war.committed}/6
+                {war.marched ? ` · ${war.marched} marched` : ""}. Time is stopped; {war.grace} days if
+                you press play.
               </p>
               <Button className="mt-3" onClick={() => state.openLanding()}>
-                Meet them on the beach
+                {war.kind === "campaign" ? "Meet them on their beach" : "Meet them on the beach"}
               </Button>
             </>
           ) : (
             <p className="mt-1 text-sm text-muted">
-              Enemy host {war.enemy} · landfall in {war.eta} days. Train militia in the barracks.
-              They will ground on the sand, not roll a coin in the dark.
+              Enemy host {war.enemy} · landfall in {war.eta} days. A stockade on the strand cuts the
+              host. Soldiers in a barracks walk onto the sand.
             </p>
           )}
         </div>

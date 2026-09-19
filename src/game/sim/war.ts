@@ -1,4 +1,4 @@
-import { BUILDING_BY_ID, isCoastTile } from "@/game/data/catalog";
+import { BUILDING_BY_ID, addStock, isCoastTile } from "@/game/data/catalog";
 import { resolveBattle } from "@/game/sim/combat";
 import { uid } from "@/game/sim/rng";
 import type { GameState, Island, IslandId, WarKind, WarState } from "@/game/types";
@@ -29,6 +29,14 @@ export function factionPops(state: GameState) {
     }
   }
   return { tory, patriot, unaligned };
+}
+
+export function warLabel(kind: WarKind, landed = false): string {
+  if (kind === "native") return "War party";
+  if (kind === "revolution") return landed ? "Royal landing" : "Royal expedition";
+  if (kind === "campaign") return landed ? "Raid on the cape" : "Cape raid";
+  if (kind === "rival") return "Rival host";
+  return landed ? "Punitive raid" : "Punitive raid";
 }
 
 export function pickLanding(island: Island): { x: number; y: number } {
@@ -65,6 +73,7 @@ export function makeWar(
     y: 0,
     committed: 0,
     grace: kind === "native" ? 6 : 8,
+    marched: 0,
   };
 }
 
@@ -73,26 +82,68 @@ export function isLandingTile(state: GameState, islandId: IslandId, x: number, y
   return Boolean(w && w.landed && !w.resolved && w.islandId === islandId && w.x === x && w.y === y);
 }
 
+export function hasStockade(island: Island | undefined) {
+  return Boolean(island?.buildings.some((b) => b.type === "stockade"));
+}
+
+export function soldierCount(state: GameState) {
+  const barracks = new Set(
+    state.islands.flatMap((i) =>
+      i.owned ? i.buildings.filter((b) => b.type === "barracks").map((b) => b.id) : [],
+    ),
+  );
+  return state.colonists.filter(
+    (c) => c.profession === "soldier" && c.jobId && barracks.has(c.jobId),
+  ).length;
+}
+
+export function enemyPower(state: GameState, war: WarState) {
+  let e = war.enemy;
+  const isle = state.islands.find((i) => i.id === war.islandId);
+  if (war.kind === "campaign") {
+    if (hasStockade(isle)) e = Math.round(e * 1.3);
+  } else if (hasStockade(isle)) {
+    e = Math.max(3, Math.round(e * 0.65));
+  }
+  return e;
+}
+
 export function playerPower(state: GameState, committed: number) {
   const muskets = state.islands.reduce((n, i) => n + (i.storage.muskets ?? 0), 0);
   const wash = state.fathers.includes("washington") ? 1.25 : 1;
   const { tory, patriot, unaligned } = factionPops(state);
   const pop = Math.max(1, tory + patriot + unaligned);
-  const fifth = 1 - (tory / pop) * 0.3;
+  const defend = state.war?.kind !== "campaign";
+  const fifth = defend ? 1 - (tory / pop) * 0.3 : 1;
   const patriotBonus = 1 + patriot * 0.04;
   return Math.max(
     1,
-    Math.round((committed * 3 + muskets + Math.max(0, state.militia) * 0.25) * wash * fifth * patriotBonus),
+    Math.round(
+      (committed * 3 + muskets + Math.max(0, state.militia) * 0.25) * wash * fifth * patriotBonus,
+    ),
   );
+}
+
+function autoMarch(state: GameState) {
+  const war = state.war;
+  if (!war) return;
+  const n = Math.min(6 - war.committed, state.militia, soldierCount(state));
+  if (n <= 0) return;
+  war.committed += n;
+  war.marched += n;
+  state.militia -= n;
 }
 
 export function landHost(state: GameState) {
   const war = state.war;
   if (!war || war.landed) return;
+  const named = state.islands.find((i) => i.id === war.islandId);
   const isle =
-    state.islands.find((i) => i.id === war.islandId && i.owned) ??
-    state.islands.find((i) => i.owned) ??
-    state.islands[0];
+    war.kind === "campaign"
+      ? named ?? state.islands.find((i) => i.id === state.rival?.islandId) ?? state.islands[0]
+      : named?.owned
+        ? named
+        : (state.islands.find((i) => i.owned) ?? named ?? state.islands[0]);
   const spot = pickLanding(isle);
   war.landed = true;
   war.eta = 0;
@@ -105,20 +156,55 @@ export function landHost(state: GameState) {
   state.selectedIslandId = isle.id;
   state.selectedTile = { x: spot.x, y: spot.y };
   state.sheet = "tile";
+  autoMarch(state);
   const who =
     war.kind === "native"
       ? "War parties on the strand"
       : war.kind === "revolution"
         ? "The royal expedition makes the beach"
-        : "A punitive squadron grounds";
-  pushLog(state, `${who} at ${isle.name}. Commit militia. Time is stopped.`, "bad");
+        : war.kind === "campaign"
+          ? `Your companies make the beach at ${isle.name}`
+          : war.kind === "rival"
+            ? `${state.rival?.name ?? "A rival flag"} grounds on the strand`
+            : "A punitive squadron grounds";
+  const extra = war.marched > 0 ? ` ${war.marched} walked from the barracks.` : " Commit militia.";
+  pushLog(state, `${who}.${extra} Time is stopped.`, war.kind === "campaign" ? "warn" : "bad");
+}
+
+function lootCampaign(state: GameState) {
+  const war = state.war;
+  const rival = state.rival;
+  if (!war || !rival) return;
+  const ship =
+    state.ships.find((s) => s.location === war.islandId && s.mission === "idle") ??
+    state.ships.find((s) => s.mission === "idle") ??
+    state.ships[0];
+  const take = { ...rival.cargo };
+  rival.cargo = {};
+  if (ship && Object.keys(take).length) {
+    ship.cargo = addStock(ship.cargo, take, ship.cargoCap);
+  }
+  const haven = state.islands.find((i) => i.owned);
+  if (haven) {
+    haven.storage = addStock(haven.storage, { ore: 4, silver: rival.stage >= 4 ? 1 : 0 }, haven.storageCap);
+  }
+  state.gold += 30 + rival.stage * 8;
+  rival.stage = Math.max(1, rival.stage - 1);
+  rival.liberty = Math.max(0, rival.liberty * 0.65);
+  const isle = state.islands.find((i) => i.id === rival.islandId);
+  if (isle && rival.stage < 4) {
+    const silver = isle.buildings.find((b) => b.type === "silver");
+    if (silver) isle.buildings = isle.buildings.filter((b) => b.id !== silver.id);
+  }
+  pushLog(state, `You lift the hold at ${rival.name}. Ore in the hull, silver on the books.`, "good");
 }
 
 export function concludeWar(state: GameState) {
   const war = state.war;
   if (!war || war.resolved) return;
   const power = playerPower(state, war.committed);
-  const result = resolveBattle(power, war.enemy, state.seed + state.day + war.committed);
+  const enemy = enemyPower(state, war);
+  const result = resolveBattle(power, enemy, state.seed + state.day + war.committed);
   war.resolved = true;
   war.result = result.won ? "won" : "lost";
   state.militia = Math.max(0, state.militia);
@@ -134,6 +220,13 @@ export function concludeWar(state: GameState) {
       if (isle?.native) isle.native.relation = Math.min(100, isle.native.relation + 10);
       state.liberty += 4;
       pushLog(state, "The raid is driven back into the trees.", "good");
+    } else if (war.kind === "campaign") {
+      lootCampaign(state);
+      state.liberty += 5;
+    } else if (war.kind === "rival") {
+      if (state.rival) state.rival.liberty = Math.max(0, state.rival.liberty * 0.8);
+      state.liberty += 6;
+      pushLog(state, `${state.rival?.name ?? "The rival"} is driven into the surf.`, "good");
     } else {
       pushLog(state, "The punitive raid is driven into the surf.", "good");
       state.liberty += 8;
@@ -151,6 +244,16 @@ export function concludeWar(state: GameState) {
         pushLog(state, "The raid bloodies the beach. Bells fall quiet.", "bad");
       }
       if (isle?.native) isle.native.relation = Math.min(isle.native.relation, 12);
+    } else if (war.kind === "campaign") {
+      if (state.rival) state.rival.liberty += 8;
+      pushLog(
+        state,
+        `The cape holds. Your companies break on ${state.rival?.name ?? "their"} palisade.`,
+        "bad",
+      );
+    } else if (war.kind === "rival") {
+      if (state.rival) state.rival.liberty += 5;
+      pushLog(state, `${state.rival?.name ?? "A rival flag"} bloodies the beach.`, "bad");
     } else {
       pushLog(state, "The Crown bloodies the beach. Bells fall quiet.", "bad");
     }
@@ -171,5 +274,6 @@ export function fillWar(war: WarState | null): WarState | null {
     y: war.y ?? 0,
     committed: war.committed ?? 0,
     grace: war.grace ?? 8,
+    marched: war.marched ?? 0,
   };
 }

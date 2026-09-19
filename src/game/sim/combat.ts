@@ -14,3 +14,7 @@ export function royalHost(day: number, colonies: number, kind: "raid" | "revolut
   if (kind === "raid") return 8 + Math.floor(day / 40) + colonies * 2 + Math.floor(rival / 2);
   return 14 + Math.floor(day / 18) + colonies * 5 + rival;
 }
+
+export function rivalHost(stage: number, liberty: number) {
+  return 6 + Math.max(0, stage) * 2 + Math.floor(Math.max(0, liberty) / 10);
+}

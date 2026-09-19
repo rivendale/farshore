@@ -59,6 +59,7 @@ export type BuildingId =
   | "chapel"
   | "school"
   | "barracks"
+  | "stockade"
   | "market"
   | "palace";
 
@@ -154,7 +155,7 @@ export type GameEvent = {
   tone: "info" | "good" | "warn" | "bad";
 };
 
-export type WarKind = "raid" | "revolution" | "native";
+export type WarKind = "raid" | "revolution" | "native" | "campaign" | "rival";
 
 export type WarState = {
   kind: WarKind;
@@ -168,6 +169,7 @@ export type WarState = {
   y: number;
   committed: number;
   grace: number;
+  marched: number;
 };
 
 export type RivalState = {
@@ -182,6 +184,7 @@ export type RivalState = {
   shipAt: "isle" | "sea-out" | "europe" | "sea-home";
   cargo: Stock;
   liberty: number;
+  lastRaidDay: number;
 };
 
 export type Ending = "none" | "republic" | "charter";

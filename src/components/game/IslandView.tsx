@@ -210,7 +210,9 @@ export function IslandView() {
       {!island.owned ? (
         <div className="pointer-events-none absolute left-1/2 top-4 z-10 w-[min(90%,20rem)] -translate-x-1/2 rounded-[var(--radius-md)] border border-border bg-bg/80 px-3 py-2 text-center text-sm text-fg backdrop-blur-sm">
           {rival?.claimed && rival.islandId === island.id
-            ? `${rival.name} flies here. You cannot plant a charter on this cape.`
+            ? war?.landed && war.islandId === island.id
+              ? `${rival.name} — host on their strand. Commit militia.`
+              : `${rival.name} flies here. Sail a hull, then raid from a plot or the chart.`
             : island.native
               ? `${island.native.name} keep this shore. Trade or seek settlement rights.`
               : "Unclaimed land. Land a ship to settle."}

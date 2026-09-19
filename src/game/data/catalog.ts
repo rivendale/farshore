@@ -11,7 +11,7 @@ import type {
 
 export const DAY_SECONDS = 1.15;
 export const SAVE_KEY = "farshore.save.v1";
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 export const MAP_SIZE = 9;
 
 export const GOODS: {
@@ -554,6 +554,24 @@ export const BUILDINGS: BuildingDef[] = [
     priority: 19,
   },
   {
+    id: "stockade",
+    name: "Stockade",
+    category: "civic",
+    blurb: "A palisade on the strand. Hosts land softer here; you land harder on theirs.",
+    cost: { planks: 20, tools: 3 },
+    terrain: "coast",
+    workers: 0,
+    popCap: 0,
+    produces: {},
+    consumes: {},
+    needs: [],
+    storageBonus: 0,
+    liberty: 0.2,
+    crosses: 0,
+    priority: 20,
+    unique: true,
+  },
+  {
     id: "market",
     name: "Market",
     category: "civic",
@@ -784,6 +802,7 @@ export const ART: Record<string, string> = {
   chapel: "/game/buildings/chapel.png",
   school: "/game/buildings/chapel.png",
   barracks: "/game/buildings/barracks.png",
+  stockade: "/game/buildings/stockade.png",
   market: "/game/buildings/warehouse.png",
   palace: "/game/buildings/palace.png",
   tree: "/game/props/tree.png",
@@ -936,6 +955,8 @@ export function isUnlocked(def: BuildingDef, state: GameState) {
       return hasBuilding(state, "hall") && pop >= 16;
     case "armory":
       return hasBuilding(state, "smithy") && hasBuilding(state, "barracks");
+    case "stockade":
+      return hasBuilding(state, "barracks");
     case "manor":
     case "market":
     case "silver":

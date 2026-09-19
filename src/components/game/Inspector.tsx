@@ -19,7 +19,7 @@ import {
   yieldMult,
 } from "@/game/data/people";
 import { adjacentChop } from "@/game/sim/world";
-import { houseFaction, isLandingTile, playerPower } from "@/game/sim/war";
+import { enemyPower, hasStockade, houseFaction, isLandingTile, playerPower, warLabel } from "@/game/sim/war";
 import { useGame } from "@/game/store";
 import type { BuildingId, GoodId, Stock } from "@/game/types";
 import { Hammer, Trash2, X } from "lucide-react";
@@ -130,6 +130,10 @@ function TileDetail() {
   if (!b) return <p className="text-sm text-muted">Empty plot.</p>;
   const def = BUILDING_BY_ID[b.type];
   if (!island.owned) {
+    const rivalHere = state.rival?.claimed && state.rival.islandId === island.id;
+    const shipHere = state.ships.some(
+      (s) => s.location === island.id && s.mission === "idle",
+    );
     return (
       <div>
         <div className="flex items-center gap-3">
@@ -140,6 +144,32 @@ function TileDetail() {
           </div>
         </div>
         <p className="mt-2 text-sm leading-relaxed text-muted">{def.blurb}</p>
+        {rivalHere ? (
+          <div className="mt-3 flex flex-col gap-2">
+            <p className="text-sm text-muted">
+              {shipHere
+                ? "A hull sits on their tide. Row companies ashore."
+                : `Sail a hull to ${state.rival?.name} first.`}
+            </p>
+            <Button
+              size="sm"
+              onClick={() => {
+                const msg = state.raidRival();
+                if (msg) {
+                  useGame.setState((s) => ({
+                    log: [
+                      { id: `n-${s.day}`, day: s.day, text: msg, tone: "warn" as const },
+                      ...s.log,
+                    ].slice(0, 40),
+                  }));
+                }
+              }}
+              disabled={!shipHere || state.militia < 1 || Boolean(state.war)}
+            >
+              Raid this cape
+            </Button>
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -303,26 +333,48 @@ function LandingDetail() {
   const engage = useGame((s) => s.engage);
   const state = useGame();
   if (!war?.landed) return null;
-  const title =
-    war.kind === "native" ? "War party" : war.kind === "revolution" ? "Royal landing" : "Punitive raid";
+  const title = warLabel(war.kind, true);
   const power = playerPower(state, war.committed);
+  const host = enemyPower(state, war);
+  const isle = state.islands.find((i) => i.id === war.islandId);
+  const fort = hasStockade(isle);
+  const storm = war.kind === "campaign";
   return (
     <div>
       <p className="font-display text-xl leading-tight">{title}</p>
       <p className="mt-1 text-sm text-muted">
-        Host {war.enemy} · committed {war.committed}/6 · your weight {power}
+        Host {host}
+        {host !== war.enemy ? ` · listed ${war.enemy}` : ""} · committed {war.committed}/6 · your
+        weight {power}
       </p>
+      {war.marched ? (
+        <p className="mt-1 text-sm text-good">{war.marched} walked from the barracks.</p>
+      ) : null}
+      {fort ? (
+        <p className="mt-1 text-sm text-muted">
+          {storm
+            ? "Their palisade holds the strand. The host is thicker."
+            : "Your stockade cuts the host."}
+        </p>
+      ) : null}
       <p className="mt-2 text-sm leading-relaxed text-muted">
-        Send companies onto the sand. Three is a fight. Six is a crush. Time is stopped until you
-        press play — they will not wait forever.
+        {storm
+          ? "Send companies onto their sand. Three is a fight. Six is a crush."
+          : "Send companies onto the sand. Three is a fight. Six is a crush."}{" "}
+        Time is stopped until you press play — they will not wait forever.
       </p>
       <p className="mt-2 text-sm">Militia in reserve {militia}</p>
       <div className="mt-3 flex flex-col gap-2">
         <Button size="sm" onClick={() => commitMilitia()} disabled={militia <= 0 || war.committed >= 6}>
           Send a company
         </Button>
-        <Button size="sm" variant={war.committed >= 3 ? "primary" : "ghost"} onClick={() => engage()} disabled={war.committed < 1}>
-          Stand and fight
+        <Button
+          size="sm"
+          variant={war.committed >= 3 ? "primary" : "ghost"}
+          onClick={() => engage()}
+          disabled={war.committed < 1}
+        >
+          {storm ? "Storm the palisade" : "Stand and fight"}
         </Button>
       </div>
     </div>

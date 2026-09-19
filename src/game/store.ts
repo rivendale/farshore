@@ -20,9 +20,9 @@ import {
   workersOn,
 } from "@/game/data/people";
 import { createGame } from "@/game/sim/create";
-import { royalHost } from "@/game/sim/combat";
+import { royalHost, rivalHost } from "@/game/sim/combat";
 import { emptyStop } from "@/game/sim/routes";
-import { concludeWar, makeWar } from "@/game/sim/war";
+import { concludeWar, landHost, makeWar } from "@/game/sim/war";
 import { clearSave, loadSave, writeSave } from "@/game/persist";
 import { uid } from "@/game/sim/rng";
 import { catchUp, tickDay } from "@/game/sim/tick";
@@ -83,6 +83,7 @@ type Actions = {
   commitMilitia: () => string | null;
   engage: () => string | null;
   openLanding: () => void;
+  raidRival: () => string | null;
 };
 
 let saveTimer: number | null = null;
@@ -865,6 +866,35 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
       selectedTile: { x: war.x, y: war.y },
       sheet: "tile",
     });
+  },
+
+  raidRival: () => {
+    const state = get();
+    const rival = state.rival;
+    if (state.war) return "A host is already in the water.";
+    if (!rival?.claimed) return "No foreign flag on the chart.";
+    const ship = selectedShip(state);
+    if (!ship || ship.mission !== "idle" || ship.location !== rival.islandId) {
+      return `Sail a hull to ${rival.name} first.`;
+    }
+    if (state.militia < 1) return "No militia to row ashore.";
+    const next: GameState = {
+      ...state,
+      islands: state.islands.map((i) => ({
+        ...i,
+        native: i.native ? { ...i.native } : null,
+        storage: { ...i.storage },
+        buildings: i.buildings.map((b) => ({ ...b })),
+      })),
+      colonists: state.colonists.map((c) => ({ ...c })),
+      ships: state.ships.map((s) => ({ ...s, cargo: { ...s.cargo } })),
+      rival: { ...rival, cargo: { ...rival.cargo } },
+      war: makeWar("campaign", rivalHost(rival.stage, rival.liberty), 0, rival.islandId),
+    };
+    landHost(next);
+    set(next);
+    scheduleSave(next);
+    return null;
   },
 }));
 

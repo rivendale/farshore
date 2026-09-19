@@ -22,6 +22,8 @@ export function WorldMap() {
   const transferTo = useGame((s) => s.transferTo);
   const ship = ships.find((s) => s.id === selectedShipId) ?? ships[0];
   const rival = useGame((s) => s.rival);
+  const militia = useGame((s) => s.militia);
+  const war = useGame((s) => s.war);
   const homeDock = islands.some((i) => i.owned && i.buildings.some((b) => b.type === "dock"));
 
   return (
@@ -93,10 +95,40 @@ export function WorldMap() {
       <div className="absolute inset-x-0 bottom-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto max-w-lg rounded-[var(--radius-lg)] border border-border bg-bg/85 p-4 backdrop-blur-sm">
           {rival?.claimed ? (
-            <p className="mb-3 text-sm text-muted">
-              {rival.name} holds {ISLAND_META[rival.islandId].name}. Their {rival.shipName} will
-              undercut you in Europe.
-            </p>
+            <div className="mb-3">
+              <p className="text-sm text-muted">
+                {rival.name} holds {ISLAND_META[rival.islandId].name}. Their {rival.shipName} will
+                undercut you in Europe.
+              </p>
+              <Button
+                size="sm"
+                className="mt-2"
+                onClick={() => {
+                  if (ship?.location === rival.islandId && ship.mission === "idle") {
+                    const msg = useGame.getState().raidRival();
+                    if (msg) {
+                      useGame.setState((s) => ({
+                        log: [
+                          { id: `n-${s.day}`, day: s.day, text: msg, tone: "warn" as const },
+                          ...s.log,
+                        ].slice(0, 40),
+                      }));
+                    }
+                  } else if (ship) {
+                    transferTo(rival.islandId);
+                  }
+                }}
+                disabled={
+                  !ship ||
+                  ship.mission !== "idle" ||
+                  (ship.location === rival.islandId && (militia < 1 || Boolean(war)))
+                }
+              >
+                {ship?.location === rival.islandId && ship.mission === "idle"
+                  ? `Raid ${rival.name}`
+                  : `Sail to ${ISLAND_META[rival.islandId].name}`}
+              </Button>
+            </div>
           ) : null}
           {ships.length > 1 ? (
             <div className="mb-3 flex flex-wrap gap-2">
