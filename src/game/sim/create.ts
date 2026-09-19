@@ -1,7 +1,5 @@
-import {
-  BASE_PRICES,
-  NATIONS,
-} from "@/game/data/catalog";
+import { BASE_PRICES, NATIONS, SAVE_VERSION } from "@/game/data/catalog";
+import { makeColonist, refreshPeople } from "@/game/data/people";
 import { generateArchipelago } from "@/game/sim/mapgen";
 import { uid } from "@/game/sim/rng";
 import type { GameState, GoodId, NationId } from "@/game/types";
@@ -10,9 +8,10 @@ export function createGame(nationId: NationId, seed = Date.now()): GameState {
   const nation = NATIONS[nationId];
   const islands = generateArchipelago(seed, nation.nativeRel);
   const prices = { ...BASE_PRICES } as Record<GoodId, number>;
+  const shipId = uid("ship");
 
-  return {
-    version: 1,
+  const state: GameState = {
+    version: SAVE_VERSION,
     screen: "play",
     view: "island",
     nationId,
@@ -35,11 +34,12 @@ export function createGame(nationId: NationId, seed = Date.now()): GameState {
     tutorialDone: false,
     selectedIslandId: "haven",
     selectedTile: { x: 4, y: 4 },
+    selectedShipId: shipId,
     sheet: "build",
     islands,
     ships: [
       {
-        id: uid("ship"),
+        id: shipId,
         name: "Charter",
         cargoCap: nation.cargo,
         cargo: {},
@@ -48,8 +48,13 @@ export function createGame(nationId: NationId, seed = Date.now()): GameState {
         eta: 0,
         mission: "idle",
         exploreTarget: null,
+        held: false,
+        route: null,
+        routeIndex: 0,
       },
     ],
+    colonists: [],
+    europeVisited: false,
     prices,
     war: null,
     log: [
@@ -62,4 +67,10 @@ export function createGame(nationId: NationId, seed = Date.now()): GameState {
     ],
     nextTaxDay: 28,
   };
+
+  for (let i = 0; i < nation.settlers; i++) {
+    state.colonists.push(makeColonist(state, "laborer", "haven"));
+  }
+  refreshPeople(state);
+  return state;
 }

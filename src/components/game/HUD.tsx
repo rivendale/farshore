@@ -1,5 +1,6 @@
 import { GoodIcon } from "@/components/game/GoodIcon";
 import { GOODS, libertyPercent, totalPop, totalStock } from "@/game/data/catalog";
+import { idleHands } from "@/game/data/people";
 import { useGame } from "@/game/store";
 import type { PlayView } from "@/game/types";
 import { Anchor, Crown, Map, Pause, Play, Mountain } from "lucide-react";
@@ -23,6 +24,7 @@ export function HUD() {
   const state = useGame();
   const pop = totalPop(state);
   const pct = libertyPercent(state);
+  const idle = idleHands(state, island.id);
   const food = island.storage.food ?? 0;
   const lumber = island.storage.lumber ?? 0;
   const planks = island.storage.planks ?? 0;
@@ -72,7 +74,8 @@ export function HUD() {
             Day {day} · {island.name}
           </span>
           <span className="tabular">
-            {pop} souls · liberty {pct}% · hold {totalStock(island.storage)}/{island.storageCap}
+            {pop} souls{idle ? ` · ${idle} idle` : ""} · liberty {pct}% · hold{" "}
+            {totalStock(island.storage)}/{island.storageCap}
           </span>
         </div>
         {state.log[0] ? (

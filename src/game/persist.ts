@@ -1,12 +1,15 @@
 import { SAVE_KEY, SAVE_VERSION } from "@/game/data/catalog";
+import { migratePeople } from "@/game/data/people";
 import { catchUp } from "@/game/sim/tick";
 import type { GameState } from "@/game/types";
 
 function migrate(raw: GameState): GameState {
   const s = { ...raw };
   if (!s.version) s.version = 1;
-  s.version = SAVE_VERSION;
-  return s;
+  if (s.version < 2) return migratePeople(s);
+  const next = migratePeople(s);
+  next.version = SAVE_VERSION;
+  return next;
 }
 
 export function loadSave(): GameState | null {

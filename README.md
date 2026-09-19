@@ -8,7 +8,8 @@ Touch-first, portrait. Land on Haven Isle, raise a hut, farm, and lumber camp, m
 
 - Four nations (England, France, Spain, United Provinces)
 - Tile placement, extract → refine chains, house upgrades
-- One caravel: load, sail, sell under the tariff
+- Colonists with jobs: laborer, farmer, lumberjack, miner, artisan, soldier, statesman, petty criminal. School and on-the-job training.
+- One to three caravels: load by hand, or set a looping route (Haven cane → distillery → Europe)
 - Native gifts, trade, and settlement rights
 - Founding fathers, militia, raid or revolution
 - Two endings: free republic, or a Governor’s Palace charter

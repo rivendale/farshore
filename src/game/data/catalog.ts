@@ -11,7 +11,7 @@ import type {
 
 export const DAY_SECONDS = 1.15;
 export const SAVE_KEY = "farshore.save.v1";
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 export const MAP_SIZE = 9;
 
 export const GOODS: {

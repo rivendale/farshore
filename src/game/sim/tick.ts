@@ -1,4 +1,5 @@
 import {
+  BASE_PRICES,
   BUILDING_BY_ID,
   FATHERS,
   addStock,
@@ -8,14 +9,17 @@ import {
   islandPop,
   libertyPercent,
   totalPop,
-  totalStock,
 } from "@/game/data/catalog";
+import { JOB_PROFESSION, professionName, refreshPeople, workerMult, workersOn } from "@/game/data/people";
+import { recoverPrices, tickRoutes } from "@/game/sim/routes";
 import { uid } from "@/game/sim/rng";
+import { makeColonist } from "@/game/data/people";
 import type {
   GameEvent,
   GameState,
   GoodId,
   Island,
+  IslandId,
   Stock,
 } from "@/game/types";
 import { resolveBattle } from "@/game/sim/combat";
@@ -37,63 +41,45 @@ function take(stock: Stock, id: GoodId, n: number) {
   return used === n;
 }
 
-function islandSchool(island: Island) {
-  return island.buildings.some((b) => b.type === "school" && !b.idle) ? 1.15 : 1;
+function islandSchool(state: GameState, island: Island) {
+  return island.buildings.some((b) => b.type === "school" && workersOn(state, b.id).length > 0)
+    ? 1.15
+    : 1;
 }
 
 function refreshStorageCap(island: Island) {
   island.storageCap =
-    70 +
-    island.buildings.reduce((n, b) => n + BUILDING_BY_ID[b.type].storageBonus, 0);
-}
-
-function assignWorkers(island: Island) {
-  const pop = islandPop(island);
-  const ranked = [...island.buildings]
-    .map((b) => ({ b, def: BUILDING_BY_ID[b.type] }))
-    .filter((x) => x.def.workers > 0)
-    .sort((a, b) => a.def.priority - b.def.priority);
-  let used = 0;
-  for (const { b, def } of ranked) {
-    if (used + def.workers <= pop) {
-      b.idle = false;
-      used += def.workers;
-    } else {
-      b.idle = true;
-    }
-  }
+    70 + island.buildings.reduce((n, b) => n + BUILDING_BY_ID[b.type].storageBonus, 0);
 }
 
 function tickIsland(state: GameState, island: Island) {
   if (!island.owned) return;
   refreshStorageCap(island);
-  assignWorkers(island);
   const nation = state.nationId;
   const foodMult = nation === "france" ? 1.22 : 1;
-  const school = islandSchool(island);
+  const school = islandSchool(state, island);
   const stock = { ...island.storage };
 
-  const extractors = island.buildings
-    .filter((b) => !b.idle)
-    .map((b) => ({ b, def: BUILDING_BY_ID[b.type] }))
+  const staffed = island.buildings
+    .map((b) => ({ b, def: BUILDING_BY_ID[b.type], mult: workerMult(state, b.id, b.type) }))
+    .filter((x) => x.def.workers === 0 || x.mult > 0)
     .sort((a, b) => a.def.priority - b.def.priority);
 
-  for (const { def } of extractors) {
+  for (const { b, def, mult } of staffed) {
     if (def.category !== "extract") continue;
     const out: Stock = {};
     for (const [k, v] of Object.entries(def.produces)) {
       if (!v) continue;
       const extra = k === "food" ? foodMult : 1;
-      out[k as GoodId] = Math.max(1, Math.round(v * extra * school));
+      out[k as GoodId] = Math.max(1, Math.round(v * extra * school * mult));
     }
     Object.assign(stock, addStock(stock, out, island.storageCap));
+    b.idle = false;
   }
 
-  for (const { b, def } of extractors) {
+  for (const { b, def, mult } of staffed) {
     if (def.category !== "refine") continue;
-    const ok = Object.entries(def.consumes).every(
-      ([k, v]) => get(stock, k as GoodId) >= (v ?? 0),
-    );
+    const ok = Object.entries(def.consumes).every(([k, v]) => get(stock, k as GoodId) >= (v ?? 0));
     if (!ok) {
       b.idle = true;
       continue;
@@ -101,23 +87,27 @@ function tickIsland(state: GameState, island: Island) {
     for (const [k, v] of Object.entries(def.consumes)) take(stock, k as GoodId, v ?? 0);
     const out: Stock = {};
     for (const [k, v] of Object.entries(def.produces)) {
-      if (v) out[k as GoodId] = Math.max(1, Math.round(v * school));
+      if (v) out[k as GoodId] = Math.max(1, Math.round(v * school * mult));
     }
     Object.assign(stock, addStock(stock, out, island.storageCap));
+    b.idle = false;
   }
 
-  for (const { b, def } of extractors) {
+  for (const { b, def } of staffed) {
     if (def.id !== "barracks") continue;
     if (get(stock, "muskets") >= 1 && get(stock, "food") >= 1) {
       take(stock, "muskets", 1);
       take(stock, "food", 1);
-      state.militia += 1;
+      const crew = workersOn(state, b.id);
+      const bonus = crew.some((c) => c.profession === "soldier") ? 2 : 1;
+      state.militia += bonus;
+      b.idle = false;
     } else {
       b.idle = true;
     }
   }
 
-  for (const { def } of extractors) {
+  for (const { def } of staffed) {
     if (def.id !== "market") continue;
     if (get(stock, "food") > 18) {
       take(stock, "food", 4);
@@ -128,13 +118,6 @@ function tickIsland(state: GameState, island: Island) {
   const houses = island.buildings.filter((b) => BUILDING_BY_ID[b.type].category === "house");
   for (const h of houses) {
     const def = BUILDING_BY_ID[h.type];
-    let ok = true;
-    for (const need of def.needs) {
-      if (get(stock, need.good) < need.amount) {
-        if (need.good === "food") ok = false;
-        else ok = ok && false;
-      }
-    }
     const foodNeed = def.needs.find((n) => n.good === "food");
     if (foodNeed && get(stock, "food") >= foodNeed.amount) {
       take(stock, "food", foodNeed.amount);
@@ -150,23 +133,47 @@ function tickIsland(state: GameState, island: Island) {
     }
     h.satisfied = lux;
     state.gold += houseGold(def, h.satisfied, state);
-    if (h.filled < def.popCap && state.settlers > 0) {
-      const add = Math.min(def.popCap - h.filled, state.settlers);
-      h.filled += add;
-      state.settlers -= add;
-    }
   }
 
   const surplusFood = Math.max(0, get(stock, "food") - islandPop(island) * 0.4);
   state.growth += 1 + surplusFood * 0.15;
 
   for (const { b, def } of island.buildings.map((b) => ({ b, def: BUILDING_BY_ID[b.type] }))) {
-    if (b.idle) continue;
-    state.liberty += def.liberty;
+    if (b.idle && def.workers > 0) continue;
+    let bells = def.liberty;
+    if (def.id === "hall" || def.id === "chapel" || def.id === "palace") {
+      if (workersOn(state, b.id).some((c) => c.profession === "statesman")) bells += 1;
+    }
+    state.liberty += bells;
     state.crosses += def.crosses;
   }
 
+  for (const c of state.colonists) {
+    if (c.islandId !== island.id) continue;
+    if (c.profession === "criminal") state.liberty -= 0.25;
+  }
+
+  trainOnIsland(state, island);
   island.storage = stock;
+}
+
+function trainOnIsland(state: GameState, island: Island) {
+  const schoolStaffed = island.buildings.some(
+    (b) => b.type === "school" && workersOn(state, b.id).length > 0,
+  );
+  for (const c of state.colonists) {
+    if (c.islandId !== island.id || c.profession !== "laborer" || !c.jobId) continue;
+    const b = island.buildings.find((bb) => bb.id === c.jobId);
+    if (!b) continue;
+    const want = JOB_PROFESSION[b.type];
+    if (!want || want === "laborer") continue;
+    c.trainDays += schoolStaffed ? 2 : 1;
+    if (c.trainDays >= 12) {
+      c.profession = want;
+      c.trainDays = 0;
+      pushLog(state, `${c.name} is now a ${professionName(want).toLowerCase()}.`, "good");
+    }
+  }
 }
 
 function tickShips(state: GameState) {
@@ -178,6 +185,7 @@ function tickShips(state: GameState) {
       ship.location = "europe";
       ship.mission = "idle";
       ship.dest = null;
+      state.europeVisited = true;
       pushLog(state, `${ship.name} makes Amsterdam roads. The docks are open.`, "info");
     } else if (ship.mission === "explore" && ship.exploreTarget) {
       const isle = state.islands.find((i) => i.id === ship.exploreTarget);
@@ -203,9 +211,7 @@ function tickShips(state: GameState) {
       ship.mission = "idle";
       const destIsle = state.islands.find((i) => i.id === ship.dest);
       if (destIsle) {
-        destIsle.storage = addStock(destIsle.storage, ship.cargo, destIsle.storageCap);
-        ship.cargo = {};
-        pushLog(state, `${ship.name} unloads at ${destIsle.name}.`, "info");
+        pushLog(state, `${ship.name} makes ${destIsle.name}.`, "info");
       }
       ship.dest = null;
     } else if (ship.mission === "diplomacy" && ship.dest && ship.dest !== "europe") {
@@ -216,16 +222,32 @@ function tickShips(state: GameState) {
   }
 }
 
+function spawnOnBestIsland(state: GameState, kind: "child" | "immigrant") {
+  const owned = state.islands.filter((i) => i.owned);
+  const ranked = [...owned].sort((a, b) => {
+    const slack = (isle: Island) =>
+      isle.buildings.reduce((n, b) => n + BUILDING_BY_ID[b.type].popCap, 0) - islandPop(isle);
+    return slack(b) - slack(a);
+  });
+  const home = ranked[0] ?? state.islands.find((i) => i.id === "haven")!;
+  state.colonists.push(makeColonist(state, "laborer", home.id as IslandId));
+  pushLog(
+    state,
+    kind === "child"
+      ? `A child of the colony comes of age on ${home.name}.`
+      : `Immigrants step off a packet at ${home.name}.`,
+    "good",
+  );
+}
+
 function tickGrowth(state: GameState) {
   while (state.growth >= 36) {
     state.growth -= 36;
-    state.settlers += 1;
-    pushLog(state, "A child of the colony comes of age.", "good");
+    spawnOnBestIsland(state, "child");
   }
   while (state.crosses >= 22) {
     state.crosses -= 22;
-    state.settlers += 1;
-    pushLog(state, "Immigrants step off a packet from Europe.", "good");
+    spawnOnBestIsland(state, "immigrant");
   }
 }
 
@@ -299,16 +321,18 @@ function musketsInEmpire(state: GameState) {
 
 function checkCharterVictory(state: GameState) {
   if (state.ending !== "none") return;
-  if (hasBuilding(state, "palace") && countBuilding(state, "manor") + countBuilding(state, "patriot") >= 3) {
+  if (
+    hasBuilding(state, "palace") &&
+    countBuilding(state, "manor") + countBuilding(state, "patriot") >= 3
+  ) {
     state.ending = "charter";
     state.screen = "victory";
     pushLog(state, "The palace rises. The charter stands eternal.", "good");
   }
 }
 
-export function tickDay(state: GameState): GameState {
-  if (state.screen !== "play") return state;
-  const next: GameState = {
+function cloneState(state: GameState): GameState {
+  return {
     ...state,
     islands: state.islands.map((i) => ({
       ...i,
@@ -317,17 +341,33 @@ export function tickDay(state: GameState): GameState {
       storage: { ...i.storage },
       native: i.native ? { ...i.native } : null,
     })),
-    ships: state.ships.map((s) => ({ ...s, cargo: { ...s.cargo } })),
+    ships: state.ships.map((s) => ({
+      ...s,
+      cargo: { ...s.cargo },
+      route: s.route
+        ? s.route.map((st) => ({ ...st, load: { ...st.load }, unload: { ...st.unload } }))
+        : null,
+    })),
+    colonists: (state.colonists ?? []).map((c) => ({ ...c })),
     prices: { ...state.prices },
     fathers: [...state.fathers],
     log: [...state.log],
     war: state.war ? { ...state.war } : null,
   };
+}
+
+export function tickDay(state: GameState): GameState {
+  if (state.screen !== "play") return state;
+  const next = cloneState(state);
   next.day += 1;
   next.lastRealAt = Date.now();
+  refreshPeople(next);
   for (const isle of next.islands) tickIsland(next, isle);
   tickShips(next);
+  tickRoutes(next);
+  recoverPrices(next, BASE_PRICES);
   tickGrowth(next);
+  refreshPeople(next);
   tickFathers(next);
   tickCrown(next);
   tickWar(next);

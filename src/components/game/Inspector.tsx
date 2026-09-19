@@ -10,6 +10,14 @@ import {
   stockHas,
   tileAllows,
 } from "@/game/data/catalog";
+import {
+  JOB_PROFESSION,
+  joblessOn,
+  professionName,
+  residentsOn,
+  workersOn,
+  yieldMult,
+} from "@/game/data/people";
 import { useGame } from "@/game/store";
 import type { BuildingId, GoodId, Stock } from "@/game/types";
 import { Hammer, Trash2, X } from "lucide-react";
@@ -112,6 +120,8 @@ function TileDetail() {
   const tile = state.selectedTile;
   const upgrade = useGame((s) => s.upgrade);
   const demolish = useGame((s) => s.demolish);
+  const assignJob = useGame((s) => s.assignJob);
+  const unassignJob = useGame((s) => s.unassignJob);
   if (!tile) return null;
   const b = island.buildings.find((bb) => bb.x === tile.x && bb.y === tile.y);
   if (!b) return <p className="text-sm text-muted">Empty plot.</p>;
@@ -122,6 +132,12 @@ function TileDetail() {
     >
   )[b.type];
   const nextDef = next ? BUILDING_BY_ID[next] : null;
+  const crew = workersOn(state, b.id);
+  const residents = residentsOn(state, b.id);
+  const want = JOB_PROFESSION[b.type];
+  const pool = joblessOn(state, island.id);
+  const housed = state.colonists.filter((c) => c.islandId === island.id && c.homeId).length;
+
   return (
     <div>
       <div className="flex items-center gap-3">
@@ -129,13 +145,21 @@ function TileDetail() {
         <div>
           <p className="font-display text-xl leading-tight">{def.name}</p>
           <p className="text-sm text-muted">
-            {b.idle ? "Idle — need workers or inputs" : "Working"}
-            {def.category === "house" ? ` · ${b.filled}/${def.popCap} souls` : ""}
+            {def.workers > 0
+              ? b.idle
+                ? `Idle — ${crew.length}/${def.workers} hands`
+                : `Working · ${crew.length}/${def.workers}`
+              : def.category === "house"
+                ? `${residents.length}/${def.popCap} souls`
+                : "Standing"}
           </p>
         </div>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted">{def.blurb}</p>
-      {Object.keys(def.produces).length ? (
+      {want ? (
+        <p className="mt-1 text-xs text-faint">Wants a {professionName(want)} for the fat yield.</p>
+      ) : null}
+      {Object.entries(def.produces).some(([, v]) => v) ? (
         <p className="mt-2 text-sm">
           Makes{" "}
           {Object.entries(def.produces)
@@ -154,6 +178,77 @@ function TileDetail() {
             .join(", ")}
         </p>
       ) : null}
+
+      {def.category === "house" && residents.length ? (
+        <ul className="mt-3 flex flex-col gap-1">
+          {residents.map((c) => (
+            <li key={c.id} className="flex h-10 items-center justify-between text-sm">
+              <span>
+                {c.name}
+                <span className="text-muted"> · {professionName(c.profession)}</span>
+              </span>
+              <span className="text-xs text-faint">{c.jobId ? "at work" : "idle"}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {def.workers > 0 ? (
+        <div className="mt-3">
+          <p className="text-xs uppercase tracking-wider text-faint">Hands</p>
+          {crew.length ? (
+            <ul className="mt-1 flex flex-col gap-1">
+              {crew.map((c) => (
+                <li key={c.id} className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 text-sm">
+                    {c.name}
+                    <span className="text-muted">
+                      {" "}
+                      · {professionName(c.profession)}
+                      {yieldMult(c.profession, b.type) >= 1.5 ? " · master" : ""}
+                      {c.profession === "laborer" && c.trainDays > 0
+                        ? ` · learning ${c.trainDays}/12`
+                        : ""}
+                    </span>
+                  </span>
+                  <Button size="sm" variant="quiet" onClick={() => unassignJob(c.id)}>
+                    Pull off
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-sm text-muted">
+              {housed ? "No one on this work." : "Raise a hut first. Hands need a roof."}
+            </p>
+          )}
+          {crew.length < def.workers && pool.length ? (
+            <div className="mt-2 flex flex-col gap-1">
+              <p className="text-xs text-faint">Idle on this isle</p>
+              {pool.slice(0, 6).map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => assignJob(c.id)}
+                  className="flex h-10 items-center justify-between rounded-[var(--radius-sm)] border border-border bg-bg-elevated px-3 text-left text-sm"
+                >
+                  <span>
+                    {c.name}
+                    <span className="text-muted"> · {professionName(c.profession)}</span>
+                  </span>
+                  <span className="text-xs text-accent">Assign</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+          {crew.length < def.workers && !pool.length && housed ? (
+            <p className="mt-2 text-sm text-muted">
+              Every housed soul is already at work. Pull someone off another plot.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="mt-3 flex gap-2">
         {nextDef && isUnlocked(nextDef, state) ? (
           <Button size="sm" onClick={() => upgrade()}>

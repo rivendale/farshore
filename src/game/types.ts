@@ -21,6 +21,16 @@ export type NationId = "england" | "france" | "spain" | "netherlands";
 
 export type IslandId = "haven" | "kaneska" | "iron" | "cinder";
 
+export type ProfessionId =
+  | "laborer"
+  | "farmer"
+  | "lumberjack"
+  | "miner"
+  | "artisan"
+  | "statesman"
+  | "soldier"
+  | "criminal";
+
 export type BuildingId =
   | "hut"
   | "cottage"
@@ -73,6 +83,17 @@ export type BuildingInst = {
   idle: boolean;
 };
 
+export type Colonist = {
+  id: string;
+  name: string;
+  profession: ProfessionId;
+  islandId: IslandId;
+  homeId: string | null;
+  jobId: string | null;
+  locked: boolean;
+  trainDays: number;
+};
+
 export type NativeState = {
   tribeId: string;
   name: string;
@@ -100,6 +121,13 @@ export type Island = {
 
 export type ShipMission = "idle" | "europe" | "explore" | "transfer" | "diplomacy";
 
+export type RouteStop = {
+  at: IslandId | "europe";
+  load: Stock;
+  unload: Stock;
+  sell: boolean;
+};
+
 export type Ship = {
   id: string;
   name: string;
@@ -110,6 +138,9 @@ export type Ship = {
   eta: number;
   mission: ShipMission;
   exploreTarget: IslandId | null;
+  held: boolean;
+  route: RouteStop[] | null;
+  routeIndex: number;
 };
 
 export type GameEvent = {
@@ -153,9 +184,12 @@ export type GameState = {
   tutorialDone: boolean;
   selectedIslandId: IslandId;
   selectedTile: { x: number; y: number } | null;
+  selectedShipId: string;
   sheet: "none" | "build" | "tile" | "ship" | "native" | "event";
   islands: Island[];
   ships: Ship[];
+  colonists: Colonist[];
+  europeVisited: boolean;
   prices: Record<GoodId, number>;
   war: WarState | null;
   log: GameEvent[];

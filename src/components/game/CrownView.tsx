@@ -30,7 +30,8 @@ export function CrownView() {
           />
         </div>
         <p className="mt-3 text-sm text-muted">
-          Pop {pop} · militia {state.militia} · waiting settlers {state.settlers}
+          Pop {pop} · militia {state.militia} · on the beach {state.settlers} · idle hands{" "}
+          {state.colonists.filter((c) => c.homeId && !c.jobId).length}
         </p>
       </div>
 

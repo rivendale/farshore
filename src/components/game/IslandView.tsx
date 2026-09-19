@@ -169,12 +169,17 @@ export function IslandView() {
                 />
               ) : null}
               {b ? (
-                <img
-                  src={ART[b.type]}
-                  alt=""
-                  draggable={false}
-                  className={`pointer-events-none absolute inset-[4%] object-contain drop-shadow-sm ${b.idle ? "opacity-70" : ""}`}
-                />
+                <>
+                  <img
+                    src={ART[b.type]}
+                    alt=""
+                    draggable={false}
+                    className={`pointer-events-none absolute inset-[4%] object-contain drop-shadow-sm ${b.idle ? "opacity-70" : ""}`}
+                  />
+                  {b.idle ? (
+                    <span className="pointer-events-none absolute right-1 top-1 size-2 rounded-full bg-warn" />
+                  ) : null}
+                </>
               ) : null}
               {sel ? (
                 <div className="pointer-events-none absolute inset-[3px] rounded-[6px] ring-2 ring-primary/90" />

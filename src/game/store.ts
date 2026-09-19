@@ -12,8 +12,16 @@ import {
   totalPop,
   totalStock,
 } from "@/game/data/catalog";
+import {
+  PROFESSIONS,
+  SHIP_NAMES,
+  makeColonist,
+  refreshPeople,
+  workersOn,
+} from "@/game/data/people";
 import { createGame } from "@/game/sim/create";
 import { royalHost } from "@/game/sim/combat";
+import { emptyStop } from "@/game/sim/routes";
 import { clearSave, loadSave, writeSave } from "@/game/persist";
 import { uid } from "@/game/sim/rng";
 import { catchUp, tickDay } from "@/game/sim/tick";
@@ -24,6 +32,8 @@ import type {
   IslandId,
   NationId,
   PlayView,
+  ProfessionId,
+  RouteStop,
   Stock,
 } from "@/game/types";
 
@@ -36,12 +46,15 @@ type Actions = {
   setSpeed: (speed: GameState["speed"]) => void;
   selectIsland: (id: IslandId) => void;
   selectTile: (x: number, y: number) => void;
+  selectShip: (id: string) => void;
   closeSheet: () => void;
   tickDay: () => void;
   catchUp: () => void;
   place: (type: BuildingId) => string | null;
   upgrade: () => string | null;
   demolish: () => void;
+  assignJob: (colonistId: string) => string | null;
+  unassignJob: (colonistId: string) => void;
   loadShip: (good: GoodId, amount: number) => void;
   unloadShip: (good: GoodId, amount: number) => void;
   sailEurope: () => string | null;
@@ -51,7 +64,14 @@ type Actions = {
   sell: (good: GoodId, amount: number) => void;
   buy: (good: GoodId, amount: number) => void;
   recruit: () => string | null;
+  recruitProfession: (id: ProfessionId) => string | null;
   buyMuskets: () => string | null;
+  buyShip: () => string | null;
+  holdShip: (held: boolean) => void;
+  addRouteStop: (at: IslandId | "europe") => void;
+  updateRouteStop: (index: number, patch: Partial<RouteStop>) => void;
+  removeRouteStop: (index: number) => void;
+  clearRoute: () => void;
   nativeGift: () => string | null;
   nativeTrade: () => string | null;
   nativeSettle: () => string | null;
@@ -72,8 +92,8 @@ function currentIsland(state: GameState) {
   return state.islands.find((i) => i.id === state.selectedIslandId)!;
 }
 
-function idleShip(state: GameState) {
-  return state.ships.find((s) => s.mission === "idle") ?? state.ships[0];
+function selectedShip(state: GameState) {
+  return state.ships.find((s) => s.id === state.selectedShipId) ?? state.ships[0];
 }
 
 function notify(state: GameState, text: string, tone: GameState["log"][0]["tone"] = "info") {
@@ -81,13 +101,18 @@ function notify(state: GameState, text: string, tone: GameState["log"][0]["tone"
 }
 
 function dockedHere(state: GameState) {
-  const ship = idleShip(state);
+  const ship = selectedShip(state);
   return ship && ship.location === state.selectedIslandId && ship.mission === "idle";
 }
 
 function hasDock(state: GameState, islandId: IslandId) {
   const isle = state.islands.find((i) => i.id === islandId);
   return isle?.buildings.some((b) => b.type === "dock") ?? false;
+}
+
+function commit(state: GameState) {
+  refreshPeople(state);
+  return state;
 }
 
 const empty: GameState = {
@@ -102,7 +127,9 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
 
   hydrate: () => {
     const saved = typeof window !== "undefined" ? loadSave() : null;
-    if (saved && saved.nationId) set({ ...saved, screen: saved.ending !== "none" ? "victory" : saved.screen });
+    if (saved && saved.nationId) {
+      set({ ...saved, screen: saved.ending !== "none" ? "victory" : saved.screen });
+    }
   },
 
   newGame: (nation) => {
@@ -147,6 +174,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     });
   },
 
+  selectShip: (id) => set({ selectedShipId: id, view: "hold" }),
   closeSheet: () => set({ sheet: "none" }),
 
   tickDay: () => {
@@ -171,25 +199,18 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     if (isle.buildings.some((b) => b.x === tile.x && b.y === tile.y)) return "That plot is taken.";
     if (!tileAllows(def, isle, tile.x, tile.y)) return "Wrong ground for that work.";
     if (def.unique && isle.buildings.some((b) => b.type === type)) return "One per isle.";
-    if (def.category === "house" && state.settlers <= 0 && def.id === "hut") {
-      /* still allow empty hut that fills later */
-    }
     const cost = { ...def.cost };
     const fromStore = { ...isle.storage };
-    const goldCost = 0;
-    if (!stockHas(fromStore, cost) || state.gold < goldCost) return "Need more stores.";
+    if (!stockHas(fromStore, cost)) return "Need more stores.";
     const storage = payStock(fromStore, cost);
-    const filled =
-      def.category === "house" ? Math.min(def.popCap, Math.max(0, state.settlers)) : 0;
-    const settlers = state.settlers - filled;
     const inst = {
       id: uid("b"),
       type,
       x: tile.x,
       y: tile.y,
-      filled,
+      filled: 0,
       satisfied: true,
-      idle: false,
+      idle: def.workers > 0,
     };
     const islands = state.islands.map((i) =>
       i.id === isle.id ? { ...i, storage, buildings: [...i.buildings, inst] } : i,
@@ -202,15 +223,14 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
       else if (type === "sawmill" && tutorialStep === 3) tutorialStep = 4;
       else if (type === "dock" && tutorialStep >= 4) tutorialStep = 5;
     }
-    const next = {
+    const next = commit({
       ...state,
       islands,
-      settlers,
-      gold: state.gold - goldCost,
+      colonists: state.colonists.map((c) => ({ ...c })),
       tutorialStep,
       tutorialDone: tutorialStep >= 5 ? true : state.tutorialDone,
       sheet: "tile" as const,
-    };
+    });
     set(next);
     scheduleSave(next);
     return null;
@@ -241,13 +261,11 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
         ...i,
         storage: payStock(i.storage, def.cost),
         buildings: i.buildings.map((bb) =>
-          bb.id === b.id
-            ? { ...bb, type: nextType, filled: Math.min(def.popCap, Math.max(bb.filled, 1)), satisfied: false }
-            : bb,
+          bb.id === b.id ? { ...bb, type: nextType, satisfied: false } : bb,
         ),
       };
     });
-    const next = { ...state, islands };
+    const next = commit({ ...state, islands, colonists: state.colonists.map((c) => ({ ...c })) });
     set(next);
     scheduleSave(next);
     return null;
@@ -265,6 +283,11 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     for (const [k, v] of Object.entries(def.cost)) {
       refund[k as GoodId] = Math.floor((v ?? 0) / 2);
     }
+    const colonists = state.colonists.map((c) => {
+      if (c.homeId === b.id) return { ...c, homeId: null };
+      if (c.jobId === b.id) return { ...c, jobId: null, locked: true, trainDays: 0 };
+      return { ...c };
+    });
     const islands = state.islands.map((i) =>
       i.id === isle.id
         ? {
@@ -274,19 +297,53 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
           }
         : i,
     );
-    const next = {
+    const next = commit({
       ...state,
       islands,
-      settlers: state.settlers + (def.category === "house" ? b.filled : 0),
+      colonists,
       sheet: "build" as const,
-    };
+    });
+    set(next);
+    scheduleSave(next);
+  },
+
+  assignJob: (colonistId) => {
+    const state = get();
+    const tile = state.selectedTile;
+    if (!tile) return "Select a work.";
+    const isle = currentIsland(state);
+    const b = isle.buildings.find((bb) => bb.x === tile.x && bb.y === tile.y);
+    if (!b) return "Nothing to staff.";
+    const def = BUILDING_BY_ID[b.type];
+    if (def.workers <= 0) return "This plot does not take a hand.";
+    const person = state.colonists.find((c) => c.id === colonistId);
+    if (!person || person.islandId !== isle.id) return "They are not on this shore.";
+    if (!person.homeId) return "House them first.";
+    if (workersOn(state, b.id).length >= def.workers && person.jobId !== b.id) {
+      return "Full. Pull someone off first.";
+    }
+    const colonists = state.colonists.map((c) =>
+      c.id === colonistId ? { ...c, jobId: b.id, locked: true, trainDays: c.jobId === b.id ? c.trainDays : 0 } : c,
+    );
+    const next = commit({ ...state, colonists });
+    set(next);
+    scheduleSave(next);
+    return null;
+  },
+
+  unassignJob: (colonistId) => {
+    const state = get();
+    const colonists = state.colonists.map((c) =>
+      c.id === colonistId ? { ...c, jobId: null, locked: true, trainDays: 0 } : { ...c },
+    );
+    const next = commit({ ...state, colonists });
     set(next);
     scheduleSave(next);
   },
 
   loadShip: (good, amount) => {
     const state = get();
-    const ship = idleShip(state);
+    const ship = selectedShip(state);
     const isle = currentIsland(state);
     if (!ship || !dockedHere(state) || !hasDock(state, isle.id)) return;
     const have = isle.storage[good] ?? 0;
@@ -309,7 +366,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
 
   unloadShip: (good, amount) => {
     const state = get();
-    const ship = idleShip(state);
+    const ship = selectedShip(state);
     const isle = currentIsland(state);
     if (!ship || ship.location !== isle.id || ship.mission !== "idle") return;
     const have = ship.cargo[good] ?? 0;
@@ -331,10 +388,10 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
 
   sailEurope: () => {
     const state = get();
-    const ship = idleShip(state);
+    const ship = selectedShip(state);
     if (!ship || ship.mission !== "idle") return "The ship is at sea.";
     if (ship.location === "europe") return "Already in Europe.";
-    if (typeof ship.location === "string" && ship.location !== "sea" && !hasDock(state, ship.location as IslandId)) {
+    if (ship.location !== "sea" && !hasDock(state, ship.location)) {
       return "Need a wharf to clear for Europe.";
     }
     const next = {
@@ -353,7 +410,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
 
   sailHome: () => {
     const state = get();
-    const ship = idleShip(state);
+    const ship = selectedShip(state);
     if (!ship || ship.location !== "europe") return "Not in Europe.";
     const home = state.selectedIslandId;
     if (!hasDock(state, home)) return "That isle has no wharf.";
@@ -373,13 +430,13 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
 
   explore: (id) => {
     const state = get();
-    const ship = idleShip(state);
+    const ship = selectedShip(state);
     const target = state.islands.find((i) => i.id === id);
     if (!ship || ship.mission !== "idle") return "The ship is at sea.";
     if (!target) return "No such shore.";
     if (target.discovered) return "Already charted.";
-    if (typeof ship.location === "string" && ship.location !== "sea" && ship.location !== "europe") {
-      if (!hasDock(state, ship.location as IslandId)) return "Need a wharf to leave.";
+    if (ship.location !== "sea" && ship.location !== "europe" && !hasDock(state, ship.location)) {
+      return "Need a wharf to leave.";
     }
     const next = {
       ...state,
@@ -404,14 +461,12 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
 
   transferTo: (id) => {
     const state = get();
-    const ship = idleShip(state);
+    const ship = selectedShip(state);
     const target = state.islands.find((i) => i.id === id);
     if (!ship || ship.mission !== "idle") return "The ship is at sea.";
     if (!target?.discovered) return "Unknown waters.";
     if (ship.location === id) return "Already there.";
-    if (typeof ship.location !== "string" || ship.location === "europe") {
-      /* ok */
-    } else if (!hasDock(state, ship.location as IslandId) && ship.location !== "sea") {
+    if (ship.location !== "europe" && ship.location !== "sea" && !hasDock(state, ship.location)) {
       return "Need a wharf.";
     }
     const next = {
@@ -429,14 +484,13 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
 
   sell: (good, amount) => {
     const state = get();
-    const ship = idleShip(state);
+    const ship = selectedShip(state);
     if (!ship || ship.location !== "europe") return;
     const have = ship.cargo[good] ?? 0;
     const n = Math.min(amount, have);
     if (n <= 0) return;
     const nation = state.nationId ? NATIONS[state.nationId] : NATIONS.england;
-    const trade =
-      nation.tradeMult * (state.fathers.includes("franklin") ? 1.12 : 1);
+    const trade = nation.tradeMult * (state.fathers.includes("franklin") ? 1.12 : 1);
     const tax = state.independent ? 0 : state.taxRate / 100;
     const gross = n * state.prices[good] * trade;
     const gold = Math.round(gross * (1 - tax));
@@ -457,7 +511,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
 
   buy: (good, amount) => {
     const state = get();
-    const ship = idleShip(state);
+    const ship = selectedShip(state);
     if (!ship || ship.location !== "europe") return;
     const price = Math.round(state.prices[good] * 1.35);
     const space = ship.cargoCap - totalStock(ship.cargo);
@@ -474,13 +528,25 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     scheduleSave(next);
   },
 
-  recruit: () => {
+  recruit: () => get().recruitProfession("laborer"),
+
+  recruitProfession: (id) => {
     const state = get();
-    const ship = idleShip(state);
+    const ship = selectedShip(state);
     if (!ship || ship.location !== "europe") return "The docks of Europe are far.";
-    if (state.gold < 70) return "Need 70 gold.";
-    const next = { ...state, gold: state.gold - 70, settlers: state.settlers + 1 };
-    notify(next, "A free colonist takes a berth home.", "good");
+    const def = PROFESSIONS.find((p) => p.id === id);
+    if (!def) return "No such hands.";
+    if (state.gold < def.cost) return `Need ${def.cost} gold.`;
+    const home = state.islands.find((i) => i.id === state.selectedIslandId && i.owned)
+      ? state.selectedIslandId
+      : "haven";
+    const colonists = [...state.colonists.map((c) => ({ ...c })), makeColonist(state, id, home)];
+    const next = commit({
+      ...state,
+      gold: state.gold - def.cost,
+      colonists,
+    });
+    notify(next, `${def.name} ${colonists[colonists.length - 1].name} takes a berth for home.`, "good");
     set(next);
     scheduleSave(next);
     return null;
@@ -488,7 +554,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
 
   buyMuskets: () => {
     const state = get();
-    const ship = idleShip(state);
+    const ship = selectedShip(state);
     if (!ship || ship.location !== "europe") return "Not in Europe.";
     const price = 28;
     if (state.gold < price) return "Need more gold.";
@@ -503,6 +569,120 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     set(next);
     scheduleSave(next);
     return null;
+  },
+
+  buyShip: () => {
+    const state = get();
+    if (!state.europeVisited) return "Chart Europe once before you buy another hull.";
+    if (state.ships.length >= 3) return "Three hulls is the charter's limit.";
+    if (state.gold < 200) return "Need 200 gold.";
+    const nation = state.nationId ? NATIONS[state.nationId] : NATIONS.england;
+    const name = SHIP_NAMES[state.ships.length] ?? `Hull ${state.ships.length + 1}`;
+    const loc = hasDock(state, state.selectedIslandId) ? state.selectedIslandId : "haven";
+    const ship = {
+      id: uid("ship"),
+      name,
+      cargoCap: nation.cargo,
+      cargo: {},
+      location: loc as IslandId,
+      dest: null,
+      eta: 0,
+      mission: "idle" as const,
+      exploreTarget: null,
+      held: false,
+      route: null,
+      routeIndex: 0,
+    };
+    const next = {
+      ...state,
+      gold: state.gold - 200,
+      ships: [...state.ships, ship],
+      selectedShipId: ship.id,
+    };
+    notify(next, `${name} is yours. A second hold changes the map.`, "good");
+    set(next);
+    scheduleSave(next);
+    return null;
+  },
+
+  holdShip: (held) => {
+    const state = get();
+    const ship = selectedShip(state);
+    if (!ship) return;
+    const next = {
+      ...state,
+      ships: state.ships.map((s) => (s.id === ship.id ? { ...s, held } : s)),
+    };
+    set(next);
+    scheduleSave(next);
+  },
+
+  addRouteStop: (at) => {
+    const state = get();
+    const ship = selectedShip(state);
+    if (!ship) return;
+    const route = [...(ship.route ?? []), emptyStop(at)];
+    const next = {
+      ...state,
+      ships: state.ships.map((s) =>
+        s.id === ship.id ? { ...s, route, routeIndex: ship.routeIndex, held: false } : s,
+      ),
+    };
+    set(next);
+    scheduleSave(next);
+  },
+
+  updateRouteStop: (index, patch) => {
+    const state = get();
+    const ship = selectedShip(state);
+    if (!ship?.route || !ship.route[index]) return;
+    const route = ship.route.map((st, i) =>
+      i === index
+        ? {
+            ...st,
+            ...patch,
+            load: patch.load ?? st.load,
+            unload: patch.unload ?? st.unload,
+          }
+        : st,
+    );
+    const next = {
+      ...state,
+      ships: state.ships.map((s) => (s.id === ship.id ? { ...s, route } : s)),
+    };
+    set(next);
+    scheduleSave(next);
+  },
+
+  removeRouteStop: (index) => {
+    const state = get();
+    const ship = selectedShip(state);
+    if (!ship?.route) return;
+    const route = ship.route.filter((_, i) => i !== index);
+    const next = {
+      ...state,
+      ships: state.ships.map((s) =>
+        s.id === ship.id
+          ? { ...s, route: route.length ? route : null, routeIndex: 0 }
+          : s,
+      ),
+    };
+    set(next);
+    scheduleSave(next);
+  },
+
+  clearRoute: () => {
+    const state = get();
+    const ship = selectedShip(state);
+    if (!ship) return;
+    const next = {
+      ...state,
+      ships: state.ships.map((s) =>
+        s.id === ship.id ? { ...s, route: null, routeIndex: 0, held: false } : s,
+      ),
+    };
+    set(next);
+    scheduleSave(next);
   },
 
   nativeGift: () => {
@@ -530,7 +710,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     if (!native) return "No nation here.";
     if (native.relation < 20) return "They will not trade.";
     const tribe = TRIBES[native.tribeId];
-    const ship = idleShip(state);
+    const ship = selectedShip(state);
     const want = tribe.wants;
     const offer = tribe.offers;
     const source = ship && ship.location === isle.id ? ship.cargo : isle.storage;
@@ -636,4 +816,4 @@ export function useIsland() {
   return useGame((s) => s.islands.find((i) => i.id === s.selectedIslandId)!);
 }
 
-export { currentIsland, idleShip, dockedHere, hasDock };
+export { currentIsland, selectedShip, dockedHere, hasDock };

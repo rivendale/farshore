@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ISLAND_META } from "@/game/data/catalog";
 import { useGame } from "@/game/store";
 import type { IslandId } from "@/game/types";
 import { Anchor, Lock } from "lucide-react";
@@ -14,10 +15,12 @@ export function WorldMap() {
   const islands = useGame((s) => s.islands);
   const selected = useGame((s) => s.selectedIslandId);
   const ships = useGame((s) => s.ships);
+  const selectedShipId = useGame((s) => s.selectedShipId);
   const selectIsland = useGame((s) => s.selectIsland);
+  const selectShip = useGame((s) => s.selectShip);
   const explore = useGame((s) => s.explore);
   const transferTo = useGame((s) => s.transferTo);
-  const ship = ships.find((s) => s.mission === "idle") ?? ships[0];
+  const ship = ships.find((s) => s.id === selectedShipId) ?? ships[0];
   const homeDock = islands.some((i) => i.owned && i.buildings.some((b) => b.type === "dock"));
 
   return (
@@ -31,7 +34,7 @@ export function WorldMap() {
       {SPOTS.map((spot) => {
         const isle = islands.find((i) => i.id === spot.id)!;
         const known = isle.discovered;
-        const here = ship?.location === isle.id;
+        const here = ships.filter((s) => s.location === isle.id);
         return (
           <button
             key={isle.id}
@@ -53,13 +56,39 @@ export function WorldMap() {
             </span>
             <span className="mt-1 block min-w-[7rem] font-display text-sm text-fg drop-shadow">
               {known ? isle.name : "Uncharted"}
-              {here ? " · ship" : ""}
+              {here.length ? ` · ${here.map((s) => s.name).join(", ")}` : ""}
             </span>
           </button>
         );
       })}
+      {ships.some((s) => s.location === "europe" || s.location === "sea") ? (
+        <p className="absolute left-1/2 top-6 w-[min(90%,20rem)] -translate-x-1/2 text-center text-sm text-fg drop-shadow">
+          {ships
+            .filter((s) => s.location === "europe" || s.location === "sea")
+            .map((s) =>
+              s.location === "europe" ? `${s.name} in Europe` : `${s.name} at sea · ${s.eta}d`,
+            )
+            .join(" · ")}
+        </p>
+      ) : null}
       <div className="absolute inset-x-0 bottom-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto max-w-lg rounded-[var(--radius-lg)] border border-border bg-bg/85 p-4 backdrop-blur-sm">
+          {ships.length > 1 ? (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {ships.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => selectShip(s.id)}
+                  className={`h-10 rounded-full px-3 text-sm ${
+                    s.id === ship?.id ? "bg-primary text-primary-fg" : "border border-border text-muted"
+                  }`}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          ) : null}
           {SPOTS.map((spot) => {
             const isle = islands.find((i) => i.id === spot.id)!;
             if (isle.discovered) return null;
@@ -73,20 +102,22 @@ export function WorldMap() {
                   onClick={() => explore(isle.id)}
                   disabled={!ship || ship.mission !== "idle" || !homeDock}
                 >
-                  {homeDock ? "Send caravel" : "Need a wharf first"}
+                  {homeDock ? `Send ${ship?.name ?? "caravel"}` : "Need a wharf first"}
                 </Button>
               </div>
             );
           })}
           {islands.every((i) => i.discovered) ? (
             <div className="flex flex-col gap-2">
-              <p className="text-sm text-muted">All four shores are charted. Sail between them.</p>
+              <p className="text-sm text-muted">
+                All four shores are charted. {ship?.name ?? "The ship"} sails on your order.
+              </p>
               <div className="flex flex-wrap gap-2">
                 {islands
                   .filter((i) => i.id !== ship?.location)
                   .map((i) => (
                     <Button key={i.id} size="sm" variant="ghost" onClick={() => transferTo(i.id)}>
-                      Sail to {i.name}
+                      Sail to {ISLAND_META[i.id].name}
                     </Button>
                   ))}
               </div>
