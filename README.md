@@ -2,6 +2,8 @@
 
 Mobile colony sim. Paragon Pioneers production chains on a New World chart, with Colonization’s Europe trade, native diplomacy, liberty bells, and a war of independence.
 
+Play it: [rivendale.github.io/farshore](https://rivendale.github.io/farshore/)
+
 Touch-first, portrait. Land on Haven Isle, raise a hut, farm, and lumber camp, mill planks, build a wharf, and clear for Europe. Chart Kaneska, Iron Cape, and Cinder Cay. Pay the Crown, or don’t.
 
 ## Play
@@ -27,6 +29,6 @@ npm install
 npm run dev
 ```
 
-`npm run build` and `npm run typecheck` are the gates.
+`npm run build` and `npm run typecheck` are the gates. `npm run build:pages` emits a static GitHub Pages build.
 
-Private repo. Art under `public/game/` is generated for this project.
+Public repo. Art under `public/game/` is generated for this project.

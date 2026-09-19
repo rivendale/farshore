@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { libertyPercent, totalPop } from "@/game/data/catalog";
 import { useGame } from "@/game/store";
+import { asset } from "@/lib/asset";
 
 export function VictoryScreen() {
   const ending = useGame((s) => s.ending);
@@ -13,7 +14,7 @@ export function VictoryScreen() {
   return (
     <div className="relative flex min-h-dvh flex-col bg-bg text-fg">
       <img
-        src="/game/scenes/title.jpg"
+        src={asset("/game/scenes/title.jpg")}
         alt=""
         className="absolute inset-0 h-full w-full object-cover opacity-35"
       />

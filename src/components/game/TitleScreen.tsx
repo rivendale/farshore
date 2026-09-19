@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { NATIONS } from "@/game/data/catalog";
 import { useGame } from "@/game/store";
 import type { NationId } from "@/game/types";
+import { asset } from "@/lib/asset";
 import { Anchor, Compass, Flag, Sailboat } from "lucide-react";
 
 const ICONS = {
@@ -22,7 +23,7 @@ export function TitleScreen() {
     return (
       <div className="relative flex min-h-dvh flex-col bg-bg text-fg">
         <img
-          src="/game/scenes/title.jpg"
+          src={asset("/game/scenes/title.jpg")}
           alt=""
           className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30"
         />
@@ -73,7 +74,7 @@ export function TitleScreen() {
   return (
     <div className="relative flex min-h-dvh flex-col overflow-hidden bg-bg text-fg">
       <img
-        src="/game/scenes/title.jpg"
+        src={asset("/game/scenes/title.jpg")}
         alt="A colonial harbor at first light"
         className="absolute inset-0 h-full w-full object-cover"
       />

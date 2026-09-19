@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ISLAND_META } from "@/game/data/catalog";
 import { useGame } from "@/game/store";
 import type { IslandId } from "@/game/types";
+import { asset } from "@/lib/asset";
 import { Anchor, Flag, Lock } from "lucide-react";
 
 const SPOTS: { id: IslandId; top: string; left: string }[] = [
@@ -29,7 +30,7 @@ export function WorldMap() {
   return (
     <div className="absolute inset-0 overflow-hidden bg-bg">
       <img
-        src="/game/scenes/chart.jpg"
+        src={asset("/game/scenes/chart.jpg")}
         alt="Nautical chart of the archipelago"
         className="absolute inset-0 h-full w-full object-cover opacity-90"
       />
