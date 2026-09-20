@@ -780,35 +780,39 @@ export const ART: Record<string, string> = {
   cottage: asset("/game/buildings/cottage.png"),
   townhouse: asset("/game/buildings/townhouse.png"),
   manor: asset("/game/buildings/manor.png"),
-  patriot: asset("/game/buildings/townhouse.png"),
   farm: asset("/game/buildings/farm.png"),
   fishery: asset("/game/buildings/fishery.png"),
   lumber: asset("/game/buildings/lumber.png"),
   cotton: asset("/game/buildings/cotton.png"),
   tobacco: asset("/game/buildings/tobacco.png"),
   sugar: asset("/game/buildings/sugar.png"),
-  trapper: asset("/game/buildings/lumber.png"),
+  trapper: asset("/game/buildings/trapper.png"),
   mine: asset("/game/buildings/mine.png"),
-  silver: asset("/game/buildings/mine.png"),
+  silver: asset("/game/buildings/silver.png"),
   sawmill: asset("/game/buildings/sawmill.png"),
   weaver: asset("/game/buildings/weaver.png"),
   distillery: asset("/game/buildings/distillery.png"),
-  cigarmaker: asset("/game/buildings/weaver.png"),
-  furrier: asset("/game/buildings/weaver.png"),
+  cigarmaker: asset("/game/buildings/cigarmaker.png"),
+  furrier: asset("/game/buildings/furrier.png"),
   smithy: asset("/game/buildings/smithy.png"),
-  armory: asset("/game/buildings/barracks.png"),
+  armory: asset("/game/buildings/armory.png"),
   warehouse: asset("/game/buildings/warehouse.png"),
   dock: asset("/game/buildings/dock.png"),
   hall: asset("/game/buildings/hall.png"),
   chapel: asset("/game/buildings/chapel.png"),
-  school: asset("/game/buildings/chapel.png"),
+  school: asset("/game/buildings/school.png"),
   barracks: asset("/game/buildings/barracks.png"),
   stockade: asset("/game/buildings/stockade.png"),
-  market: asset("/game/buildings/warehouse.png"),
+  market: asset("/game/buildings/market.png"),
   palace: asset("/game/buildings/palace.png"),
+  patriot: asset("/game/buildings/patriot.png"),
   tree: asset("/game/props/tree.png"),
   ship: asset("/game/props/ship.png"),
+  sloop: asset("/game/props/sloop.png"),
   village: asset("/game/props/village.png"),
+  laborer: asset("/game/props/laborer.png"),
+  farmer: asset("/game/props/farmer.png"),
+  artisan: asset("/game/props/artisan.png"),
 };
 
 export const TILE_ART: Record<Terrain, string> = {
@@ -817,6 +821,40 @@ export const TILE_ART: Record<Terrain, string> = {
   grass: asset("/game/tiles/grass.png"),
   forest: asset("/game/tiles/forest.png"),
   hills: asset("/game/tiles/hills.png"),
+};
+
+export const PERSON_ART: Record<string, string> = {
+  laborer: ART.laborer,
+  farmer: ART.farmer,
+  lumberjack: ART.laborer,
+  miner: ART.laborer,
+  artisan: ART.artisan,
+  soldier: ART.laborer,
+  statesman: ART.artisan,
+  criminal: ART.laborer,
+};
+
+export const SMOKE_BUILDINGS = new Set([
+  "hut",
+  "cottage",
+  "townhouse",
+  "manor",
+  "patriot",
+  "sawmill",
+  "distillery",
+  "smithy",
+  "armory",
+  "cigarmaker",
+  "hall",
+  "chapel",
+  "school",
+]);
+
+export const ISLAND_ART: Record<IslandId, string> = {
+  haven: asset("/game/islands/haven.jpg"),
+  kaneska: asset("/game/islands/kaneska.jpg"),
+  iron: asset("/game/islands/iron.jpg"),
+  cinder: asset("/game/islands/cinder.jpg"),
 };
 
 export function goodName(id: GoodId) {

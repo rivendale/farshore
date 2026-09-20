@@ -1,16 +1,37 @@
 import { Button } from "@/components/ui/button";
-import { ISLAND_META } from "@/game/data/catalog";
+import { ART, ISLAND_ART, ISLAND_META } from "@/game/data/catalog";
 import { useGame } from "@/game/store";
-import type { IslandId } from "@/game/types";
+import type { IslandId, Ship } from "@/game/types";
 import { asset } from "@/lib/asset";
-import { Anchor, Flag, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 
-const SPOTS: { id: IslandId; top: string; left: string }[] = [
-  { id: "haven", top: "58%", left: "28%" },
-  { id: "kaneska", top: "32%", left: "62%" },
-  { id: "iron", top: "22%", left: "24%" },
-  { id: "cinder", top: "70%", left: "68%" },
+const SPOTS: { id: IslandId; top: number; left: number }[] = [
+  { id: "haven", top: 58, left: 28 },
+  { id: "kaneska", top: 32, left: 62 },
+  { id: "iron", top: 22, left: 24 },
+  { id: "cinder", top: 70, left: 68 },
 ];
+
+const EUROPE = { top: 14, left: 82 };
+
+function lerp(a: number, b: number, t: number) {
+  return a + (b - a) * t;
+}
+
+function shipSpot(ship: Ship) {
+  if (ship.location === "europe") return EUROPE;
+  if (ship.location !== "sea") {
+    const at = SPOTS.find((s) => s.id === ship.location);
+    return at ? { top: at.top - 6, left: at.left + 8 } : EUROPE;
+  }
+  const dest = ship.dest;
+  const goingEurope = dest === "europe";
+  const destSpot = goingEurope ? EUROPE : SPOTS.find((s) => s.id === dest) ?? { top: 50, left: 50 };
+  const origin = goingEurope ? SPOTS.find((s) => s.id === "haven")! : EUROPE;
+  const span = goingEurope ? 8 : 4;
+  const t = 1 - Math.min(1, ship.eta / span);
+  return { top: lerp(origin.top, destSpot.top, t), left: lerp(origin.left, destSpot.left, t) };
+}
 
 export function WorldMap() {
   const islands = useGame((s) => s.islands);
@@ -44,33 +65,66 @@ export function WorldMap() {
           <button
             key={isle.id}
             type="button"
-            style={{ top: spot.top, left: spot.left }}
+            style={{ top: `${spot.top}%`, left: `${spot.left}%` }}
             onClick={() => (known ? selectIsland(isle.id) : undefined)}
             className="absolute -translate-x-1/2 -translate-y-1/2 text-left"
           >
             <span
-              className={`flex size-11 items-center justify-center rounded-full border ${
+              className={`relative block size-16 overflow-hidden rounded-full border-2 shadow-[var(--shadow-panel)] ${
                 selected === isle.id
-                  ? "border-primary bg-primary text-primary-fg"
+                  ? "border-primary"
                   : taken
-                    ? "border-bad bg-bg/80 text-bad"
+                    ? "border-bad"
                     : known
-                      ? "border-border-strong bg-surface/90 text-fg"
-                      : "border-border bg-bg/70 text-muted"
+                      ? "border-border-strong"
+                      : "border-border"
               }`}
             >
-              {taken ? (
-                <Flag className="size-4" strokeWidth={1.7} />
-              ) : known ? (
-                <Anchor className="size-4" strokeWidth={1.7} />
-              ) : (
-                <Lock className="size-4" />
-              )}
+              <img
+                src={ISLAND_ART[isle.id]}
+                alt=""
+                draggable={false}
+                className={`h-full w-full object-cover ${known ? "" : "scale-110 blur-[1px] grayscale"}`}
+              />
+              {!known ? (
+                <span className="absolute inset-0 flex items-center justify-center bg-bg/50 text-muted">
+                  <Lock className="size-5" />
+                </span>
+              ) : null}
             </span>
             <span className="mt-1 block min-w-[7rem] font-display text-sm text-fg drop-shadow">
               {known ? isle.name : "Unknown"}
               {taken ? ` · ${rival!.name}` : here.length ? ` · ${here.map((s) => s.name).join(", ")}` : ""}
             </span>
+          </button>
+        );
+      })}
+      <div
+        className="absolute -translate-x-1/2 -translate-y-1/2 text-center"
+        style={{ top: `${EUROPE.top}%`, left: `${EUROPE.left}%` }}
+      >
+        <span className="relative block size-12 overflow-hidden rounded-full border-2 border-accent shadow-[var(--shadow-panel)]">
+          <img src={ART.dock} alt="" draggable={false} className="h-full w-full object-cover" />
+        </span>
+        <span className="mt-1 block font-display text-sm text-fg drop-shadow">Europe</span>
+      </div>
+      {ships.map((s) => {
+        const pos = shipSpot(s);
+        return (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => selectShip(s.id)}
+            style={{ top: `${pos.top}%`, left: `${pos.left}%` }}
+            className="absolute z-10 -translate-x-1/2 -translate-y-1/2"
+            aria-label={s.name}
+          >
+            <img
+              src={ART.sloop}
+              alt=""
+              draggable={false}
+              className={`h-10 w-10 object-contain drop-shadow-md ${s.location === "sea" ? "sloop-bob" : ""}`}
+            />
           </button>
         );
       })}

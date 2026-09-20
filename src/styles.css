@@ -90,3 +90,120 @@
 .safe-t {
   padding-top: max(10px, env(safe-area-inset-top));
 }
+
+.smoke-puff {
+  position: absolute;
+  left: 62%;
+  top: 10%;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--color-fg) 42%, transparent);
+  animation: smoke-rise 2.6s ease-out infinite;
+  pointer-events: none;
+}
+
+.goods-float {
+  position: absolute;
+  left: 50%;
+  top: 8%;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  animation: goods-rise 2.8s ease-out infinite;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 1px color-mix(in oklab, #000 40%, transparent));
+}
+
+.water-gleam {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    115deg,
+    transparent 0 18px,
+    color-mix(in oklab, #d7efe8 14%, transparent) 18px 20px
+  );
+  mix-blend-mode: soft-light;
+  opacity: 0.35;
+  animation: water-gleam 9s linear infinite;
+}
+
+.island-vignette {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 52%, color-mix(in oklab, var(--color-bg) 55%, transparent) 100%);
+}
+
+@keyframes smoke-rise {
+  0% {
+    transform: translateY(0) scale(0.55);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-22px) scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes goods-rise {
+  0% {
+    transform: translateY(6px) scale(0.45);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-28px) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes water-gleam {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 72px 36px;
+  }
+}
+
+@keyframes sloop-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+@keyframes sloop-bob-center {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, 3px);
+  }
+}
+
+.sloop-bob {
+  animation: sloop-bob 2.8s ease-in-out infinite;
+}
+
+.sloop-bob-center {
+  animation: sloop-bob-center 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smoke-puff,
+  .goods-float,
+  .water-gleam,
+  .sloop-bob,
+  .sloop-bob-center {
+    animation: none !important;
+  }
+}

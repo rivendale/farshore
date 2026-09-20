@@ -1,8 +1,16 @@
-import { ART, BUILDING_BY_ID, TILE_ART } from "@/game/data/catalog";
+import { ART, BUILDING_BY_ID, PERSON_ART, SMOKE_BUILDINGS, TILE_ART } from "@/game/data/catalog";
+import { GoodIcon } from "@/components/game/GoodIcon";
 import { useGame } from "@/game/store";
+import type { BuildingId, GoodId, ProfessionId } from "@/game/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const TILE = 72;
+
+function primaryGood(type: BuildingId): GoodId | null {
+  const out = BUILDING_BY_ID[type]?.produces ?? {};
+  const hit = (Object.entries(out) as [GoodId, number][]).find(([, v]) => v);
+  return hit ? hit[0] : null;
+}
 
 export function IslandView() {
   const island = useGame((s) => s.islands.find((i) => i.id === s.selectedIslandId)!);
@@ -10,6 +18,10 @@ export function IslandView() {
   const selectTile = useGame((s) => s.selectTile);
   const rival = useGame((s) => s.rival);
   const war = useGame((s) => s.war);
+  const colonists = useGame((s) => s.colonists);
+  const ships = useGame((s) => s.ships);
+  const speed = useGame((s) => s.speed);
+  const live = speed > 0;
   const wrapRef = useRef<HTMLDivElement>(null);
   const [cam, setCam] = useState({ x: 0, y: 0, z: 1 });
   const drag = useRef({
@@ -143,6 +155,15 @@ export function IslandView() {
             war.x === t.x &&
             war.y === t.y;
           const faction = b ? (b.type === "townhouse" || b.type === "manor" ? "tory" : b.type === "patriot" ? "patriot" : null) : null;
+          const worker =
+            b && BUILDING_BY_ID[b.type].workers > 0
+              ? colonists.find((c) => c.jobId === b.id && c.islandId === island.id)
+              : null;
+          const made = b && !b.idle ? primaryGood(b.type) : null;
+          const docked =
+            b?.type === "dock" &&
+            ships.some((s) => s.location === island.id && s.mission === "idle");
+          const delay = `${((t.x * 7 + t.y * 13) % 10) * 0.22}s`;
           return (
             <div
               key={`${t.x}-${t.y}`}
@@ -192,6 +213,30 @@ export function IslandView() {
                   ) : faction === "patriot" ? (
                     <span className="pointer-events-none absolute right-1 top-1 size-2 rounded-full bg-good" />
                   ) : null}
+                  {live && !b.idle && SMOKE_BUILDINGS.has(b.type) ? (
+                    <span className="smoke-puff" style={{ animationDelay: delay }} />
+                  ) : null}
+                  {live && made ? (
+                    <span className="goods-float" style={{ animationDelay: delay }}>
+                      <GoodIcon id={made} className="size-4" />
+                    </span>
+                  ) : null}
+                  {worker ? (
+                    <img
+                      src={PERSON_ART[worker.profession as ProfessionId] ?? ART.laborer}
+                      alt=""
+                      draggable={false}
+                      className="pointer-events-none absolute -bottom-0.5 right-0.5 h-8 w-8 object-contain drop-shadow-sm"
+                    />
+                  ) : null}
+                  {docked ? (
+                    <img
+                      src={ART.sloop}
+                      alt=""
+                      draggable={false}
+                      className={`pointer-events-none absolute -bottom-2 left-1/2 h-9 w-11 object-contain drop-shadow-sm ${live ? "sloop-bob-center" : "-translate-x-1/2"}`}
+                    />
+                  ) : null}
                 </>
               ) : null}
               {landing ? (
@@ -207,6 +252,8 @@ export function IslandView() {
           );
         })}
       </div>
+      {live ? <div className="water-gleam" /> : null}
+      <div className="island-vignette" />
       {!island.owned ? (
         <div className="pointer-events-none absolute left-1/2 top-4 z-10 w-[min(90%,20rem)] -translate-x-1/2 rounded-[var(--radius-md)] border border-border bg-bg/80 px-3 py-2 text-center text-sm text-fg backdrop-blur-sm">
           {rival?.claimed && rival.islandId === island.id
