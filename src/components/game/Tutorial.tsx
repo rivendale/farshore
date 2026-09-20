@@ -6,7 +6,8 @@ const STEPS = [
   "They'll starve on timber. Put a farm on the grass.",
   "You need wood for everything. Put a lumber camp on the forest.",
   "Sawmill next. Planks unlock your dock and the rest of the chain.",
-  "Raise a dock on the coast. Load what you made. Sail it to Europe yourself.",
+  "Raise a dock on the coast. That's how you reach Europe.",
+  "Name a fortune — timber, cloth, rum. The island staffs it. Then tell your ship to run it to Europe.",
 ];
 
 export function Tutorial() {

@@ -4,7 +4,7 @@ Mobile colony sim. You found the colony, you build the chains, you win your inde
 
 Play it: [rivendale.github.io/farshore](https://rivendale.github.io/farshore/)
 
-Touch-first, portrait. Land on Haven Isle, raise a hut, farm, and lumber camp, mill planks, build a dock, and sail to Europe. Map Kaneska, Iron Cape, and Cinder Cay. Pay the King, or don’t.
+Touch-first, portrait. Land on Haven Isle, raise a hut, farm, and lumber camp, mill planks, build a dock. Name a fortune — the island staffs it — and send your ship to run it to Europe. Map Kaneska, Iron Cape, and Cinder Cay. Pay the King, or don’t.
 
 ## Play
 

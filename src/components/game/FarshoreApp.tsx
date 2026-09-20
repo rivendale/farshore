@@ -1,4 +1,5 @@
 import { CrownView } from "@/components/game/CrownView";
+import { FortuneBar } from "@/components/game/FortuneBar";
 import { HUD } from "@/components/game/HUD";
 import { HoldView } from "@/components/game/HoldView";
 import { Inspector } from "@/components/game/Inspector";
@@ -73,6 +74,7 @@ export function FarshoreApp() {
         <>
           <Tutorial />
           <Inspector />
+          <FortuneBar />
         </>
       ) : null}
     </div>

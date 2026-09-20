@@ -111,6 +111,7 @@ export function generateIsland(id: IslandId, seed: number, nativeRel: number): I
     storage: id === "haven" ? { food: 60, lumber: 28, planks: 6 } : {},
     storageCap: 70,
     native,
+    orders: [],
   };
 }
 

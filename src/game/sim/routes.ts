@@ -1,6 +1,7 @@
-import { NATIONS, addStock, payStock, totalStock } from "@/game/data/catalog";
+import { NATIONS, totalStock } from "@/game/data/catalog";
+import { loadGoodsFor } from "@/game/data/chains";
 import { uid } from "@/game/sim/rng";
-import type { GameState, GoodId, IslandId, RouteStop, Ship, Stock } from "@/game/types";
+import type { ChainId, GameState, GoodId, IslandId, RouteStop, Ship, Stock } from "@/game/types";
 
 function pushLog(state: GameState, text: string, tone: GameState["log"][0]["tone"]) {
   state.log.unshift({ id: uid("ev"), day: state.day, text, tone });
@@ -83,9 +84,46 @@ export function applyStop(state: GameState, ship: Ship, stop: RouteStop) {
   }
 }
 
+export function loadChainCargo(state: GameState, ship: Ship, islandId: IslandId, chain: ChainId) {
+  const isle = state.islands.find((i) => i.id === islandId);
+  if (!isle) return 0;
+  const hasDock = isle.buildings.some((b) => b.type === "dock");
+  if (!hasDock) return 0;
+  let moved = 0;
+  for (const good of loadGoodsFor(isle, chain)) {
+    const keep = good === "food" ? 12 : 0;
+    const have = Math.max(0, (isle.storage[good] ?? 0) - keep);
+    if (have <= 0) continue;
+    moved += moveCargo(isle.storage, ship.cargo, good, have, ship.cargoCap);
+  }
+  return moved;
+}
+
+function tickShipOrder(state: GameState, ship: Ship) {
+  if (!ship.order || ship.held || ship.mission !== "idle") return;
+  const { chain, home } = ship.order;
+  if (ship.location === "europe") {
+    applyStop(state, ship, { at: "europe", load: {}, unload: {}, sell: true });
+    depart(ship, home);
+    return;
+  }
+  if (ship.location === home) {
+    const n = loadChainCargo(state, ship, home, chain);
+    if (n <= 0) return;
+    depart(ship, "europe");
+    return;
+  }
+  if (ship.location !== "sea") depart(ship, home);
+}
+
 export function tickRoutes(state: GameState) {
   for (const ship of state.ships) {
-    if (ship.held || !ship.route?.length) continue;
+    if (ship.held) continue;
+    if (ship.order) {
+      tickShipOrder(state, ship);
+      continue;
+    }
+    if (!ship.route?.length) continue;
     if (ship.mission !== "idle") continue;
     const stop = ship.route[ship.routeIndex] ?? ship.route[0];
     if (!stop) continue;

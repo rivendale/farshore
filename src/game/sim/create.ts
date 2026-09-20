@@ -52,6 +52,7 @@ export function createGame(nationId: NationId, seed = Date.now()): GameState {
         held: false,
         route: null,
         routeIndex: 0,
+        order: null,
       },
     ],
     colonists: [],

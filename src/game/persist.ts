@@ -1,4 +1,5 @@
 import { SAVE_KEY, SAVE_VERSION } from "@/game/data/catalog";
+import { migrateOrders } from "@/game/data/chains";
 import { migratePeople } from "@/game/data/people";
 import { catchUp } from "@/game/sim/tick";
 import { migrateWorld } from "@/game/sim/world";
@@ -9,6 +10,7 @@ function migrate(raw: GameState): GameState {
   if (!s.version) s.version = 1;
   s = migratePeople(s);
   s = migrateWorld(s);
+  s = migrateOrders(s);
   s.version = SAVE_VERSION;
   return s;
 }

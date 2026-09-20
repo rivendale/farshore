@@ -1,14 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { GoodIcon } from "@/components/game/GoodIcon";
-import { GOODS, ISLAND_META, goodName, totalStock } from "@/game/data/catalog";
+import { GOODS, ISLAND_META, totalStock } from "@/game/data/catalog";
+import { CHAINS, CHAIN_BY_ID } from "@/game/data/chains";
 import { PROFESSIONS, professionName } from "@/game/data/people";
 import { useGame } from "@/game/store";
-import type { GoodId, IslandId, RouteStop } from "@/game/types";
+import type { ChainId, IslandId } from "@/game/types";
 
-const PORTS: (IslandId | "europe")[] = ["haven", "kaneska", "iron", "cinder", "europe"];
-
-function portName(at: IslandId | "europe") {
-  return at === "europe" ? "Europe" : ISLAND_META[at].name;
+function portName(at: IslandId | "europe" | "sea") {
+  if (at === "europe") return "Europe";
+  if (at === "sea") return "the sea";
+  return ISLAND_META[at].name;
 }
 
 export function HoldView() {
@@ -20,26 +21,23 @@ export function HoldView() {
   const prices = useGame((s) => s.prices);
   const island = useGame((s) => s.islands.find((i) => i.id === s.selectedIslandId)!);
   const europeVisited = useGame((s) => s.europeVisited);
-  const loadShip = useGame((s) => s.loadShip);
-  const unloadShip = useGame((s) => s.unloadShip);
   const sailEurope = useGame((s) => s.sailEurope);
   const sailHome = useGame((s) => s.sailHome);
-  const sell = useGame((s) => s.sell);
-  const buy = useGame((s) => s.buy);
   const recruitProfession = useGame((s) => s.recruitProfession);
   const buyMuskets = useGame((s) => s.buyMuskets);
+  const buy = useGame((s) => s.buy);
   const buyShip = useGame((s) => s.buyShip);
   const holdShip = useGame((s) => s.holdShip);
-  const addRouteStop = useGame((s) => s.addRouteStop);
-  const updateRouteStop = useGame((s) => s.updateRouteStop);
-  const removeRouteStop = useGame((s) => s.removeRouteStop);
-  const clearRoute = useGame((s) => s.clearRoute);
+  const setShipOrder = useGame((s) => s.setShipOrder);
+  const clearShipOrder = useGame((s) => s.clearShipOrder);
+  const sell = useGame((s) => s.sell);
 
   const ship = ships.find((s) => s.id === selectedId) ?? ships[0];
   if (!ship) return null;
   const inEurope = ship.location === "europe";
   const atSea = ship.mission !== "idle";
-  const docked = ship.location === island.id && ship.mission === "idle";
+  const order = ship.order;
+  const orderDef = order ? CHAIN_BY_ID[order.chain] : null;
 
   return (
     <div className="absolute inset-0 flex flex-col overflow-y-auto bg-bg px-4 pb-28 pt-24">
@@ -66,42 +64,64 @@ export function HoldView() {
           ? `At sea · ${ship.eta} days out`
           : inEurope
             ? "Lying in Europe"
-            : `Docked at ${portName(ship.location === "sea" ? island.id : (ship.location as IslandId | "europe"))}`}
+            : `Docked at ${portName(ship.location)}`}
         {` · ${totalStock(ship.cargo)}/${ship.cargoCap} cargo`}
-        {ship.route?.length ? (ship.held ? " · route held" : " · on route") : ""}
       </p>
 
+      {orderDef ? (
+        <div className="mt-4 rounded-[var(--radius-lg)] border border-border bg-surface p-4">
+          <p className="font-display text-lg">Your order</p>
+          <p className="mt-1 text-sm leading-relaxed text-muted">
+            {ship.held
+              ? `${ship.name} holds in port. The ${orderDef.name.toLowerCase()} loop waits.`
+              : `${ship.name} runs ${orderDef.name.toLowerCase()} from ${portName(order!.home)} to Europe. You named it; she works the sea.`}
+          </p>
+          <div className="mt-3 flex flex-col gap-2">
+            <Button variant={ship.held ? "primary" : "ghost"} disabled={atSea && !ship.held} onClick={() => holdShip(!ship.held)}>
+              {ship.held ? "Release her" : "Hold in port"}
+            </Button>
+            <Button variant="quiet" onClick={() => clearShipOrder()}>
+              Cancel the loop
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <OrderPicker
+          atSea={atSea}
+          inEurope={inEurope}
+          islandId={island.id}
+          islandName={island.name}
+          orders={island.orders ?? []}
+          setShipOrder={setShipOrder}
+          sailEurope={sailEurope}
+        />
+      )}
+
       <div className="mt-4 rounded-[var(--radius-lg)] border border-border bg-surface p-3">
-        <p className="text-xs uppercase tracking-wider text-faint">Cargo</p>
+        <p className="text-xs uppercase tracking-wider text-faint">Hold</p>
         <div className="mt-2 flex flex-col gap-2">
           {GOODS.map((g) => {
             const n = ship.cargo[g.id] ?? 0;
-            if (!n && !docked && !inEurope) return null;
-            const store = island.storage[g.id] ?? 0;
-            if (!n && store <= 0 && !inEurope) return null;
+            if (!n) return null;
             return (
               <div key={g.id} className="flex items-center gap-2">
                 <GoodIcon id={g.id} />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm">{g.name}</p>
                   <p className="text-xs text-muted">
-                    Hold {n}
-                    {docked ? ` · isle ${store}` : ""}
+                    {n} in the hold
                     {inEurope ? ` · ${prices[g.id]}g` : ""}
                   </p>
                 </div>
-                {docked ? (
-                  <div className="flex gap-1">
-                    <Mini onClick={() => loadShip(g.id, 1)}>+</Mini>
-                    <Mini onClick={() => unloadShip(g.id, 1)}>-</Mini>
-                  </div>
-                ) : null}
-                {inEurope && n > 0 ? (
-                  <Mini onClick={() => sell(g.id as GoodId, n)}>Sell</Mini>
+                {inEurope ? (
+                  <Mini onClick={() => sell(g.id, n)}>Sell</Mini>
                 ) : null}
               </div>
             );
           })}
+          {!GOODS.some((g) => ship.cargo[g.id]) ? (
+            <p className="text-sm text-muted">Empty hold. Name a fortune and she fills herself.</p>
+          ) : null}
         </div>
       </div>
 
@@ -132,30 +152,7 @@ export function HoldView() {
             </Button>
           </div>
         </div>
-      ) : (
-        <div className="mt-4 flex flex-col gap-2">
-          <Button disabled={atSea} onClick={() => sailEurope()}>
-            Sail to Europe · 8 days
-          </Button>
-          <p className="text-sm text-muted">
-            Load what you made. Sell it in Europe. Or set a looping route and let your ship work
-            while you sleep.
-          </p>
-        </div>
-      )}
-
-      <RouteEditor
-        shipName={ship.name}
-        route={ship.route}
-        routeIndex={ship.routeIndex}
-        held={ship.held}
-        atSea={atSea}
-        addRouteStop={addRouteStop}
-        updateRouteStop={updateRouteStop}
-        removeRouteStop={removeRouteStop}
-        clearRoute={clearRoute}
-        holdShip={holdShip}
-      />
+      ) : null}
 
       <div className="mt-4">
         <Button
@@ -176,124 +173,68 @@ export function HoldView() {
 
 const SHIP_LEFT = ["Hope", "Packet", "Sloop"];
 
-function RouteEditor({
-  shipName,
-  route,
-  routeIndex,
-  held,
+function OrderPicker({
   atSea,
-  addRouteStop,
-  updateRouteStop,
-  removeRouteStop,
-  clearRoute,
-  holdShip,
+  inEurope,
+  islandId,
+  islandName,
+  orders,
+  setShipOrder,
+  sailEurope,
 }: {
-  shipName: string;
-  route: RouteStop[] | null;
-  routeIndex: number;
-  held: boolean;
   atSea: boolean;
-  addRouteStop: (at: IslandId | "europe") => void;
-  updateRouteStop: (index: number, patch: Partial<RouteStop>) => void;
-  removeRouteStop: (index: number) => void;
-  clearRoute: () => void;
-  holdShip: (held: boolean) => void;
+  inEurope: boolean;
+  islandId: IslandId;
+  islandName: string;
+  orders: ChainId[];
+  setShipOrder: (chain: ChainId, home?: IslandId) => string | null;
+  sailEurope: () => string | null;
 }) {
   const islands = useGame((s) => s.islands);
+  const owned = islands.filter((i) => i.owned);
+  const chains = orders.length ? orders : CHAINS.map((c) => c.id);
+
   return (
-    <div className="mt-4 rounded-[var(--radius-lg)] border border-border bg-surface p-3">
-      <div className="flex items-center justify-between">
-        <p className="font-display text-lg">Route</p>
-        {route?.length ? (
-          <button type="button" onClick={clearRoute} className="text-xs text-muted">
-            Clear
-          </button>
-        ) : null}
-      </div>
-      <p className="mt-1 text-sm text-muted">
-        {shipName} will load, sail, and sell while you tend the isle. Hold to keep her in port.
+    <div className="mt-4 rounded-[var(--radius-lg)] border border-border bg-surface p-4">
+      <p className="font-display text-lg">Give her an order</p>
+      <p className="mt-1 text-sm leading-relaxed text-muted">
+        Pick a fortune. She loads it, sells it in Europe, and comes back. You tend the isle.
       </p>
       <div className="mt-3 flex flex-col gap-2">
-        {(route ?? []).map((stop, i) => (
-          <div
-            key={`${stop.at}-${i}`}
-            className={`rounded-[var(--radius-md)] border border-border p-3 ${
-              i === routeIndex && !held ? "bg-bg-elevated" : ""
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium">
-                {i + 1}. {portName(stop.at)}
-                {i === routeIndex ? " · here" : ""}
-              </p>
-              <button type="button" className="text-xs text-muted" onClick={() => removeRouteStop(i)}>
-                Remove
-              </button>
-            </div>
-            {stop.at === "europe" ? (
-              <label className="mt-2 flex h-10 items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={stop.sell}
-                  onChange={(e) => updateRouteStop(i, { sell: e.target.checked })}
-                />
-                Sell the hold
-              </label>
-            ) : (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {GOODS.slice(0, 12).map((g) => {
-                  const load = stop.load[g.id] ?? 0;
-                  const unload = stop.unload[g.id] ?? 0;
-                  const label = unload ? `↓${unload >= 99 ? "all" : unload}` : load ? `↑${load >= 99 ? "all" : load}` : "";
-                  return (
-                    <button
-                      key={g.id}
-                      type="button"
-                      onClick={() => cycleGood(stop, g.id, (patch) => updateRouteStop(i, patch))}
-                      className={`h-8 rounded-full px-2 text-xs ${
-                        load || unload ? "bg-primary text-primary-fg" : "border border-border text-muted"
-                      }`}
-                    >
-                      {g.name}
-                      {label ? ` ${label}` : ""}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
+        {chains.map((id) => {
+          const c = CHAIN_BY_ID[id];
+          const home = orders.includes(id)
+            ? islandId
+            : (owned.find((i) => i.orders.includes(id))?.id ?? islandId);
+          return (
+            <Button
+              key={id}
+              disabled={atSea || inEurope}
+              onClick={() => {
+                const msg = setShipOrder(id, home);
+                if (msg) {
+                  useGame.setState((s) => ({
+                    log: [
+                      { id: `n-${s.day}`, day: s.day, text: msg, tone: "warn" as const },
+                      ...s.log,
+                    ].slice(0, 40),
+                  }));
+                }
+              }}
+            >
+              Run {c.name.toLowerCase()}
+              {home !== islandId ? ` from ${ISLAND_META[home].name}` : ` from ${islandName}`}
+            </Button>
+          );
+        })}
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {PORTS.filter((p) => p === "europe" || islands.find((i) => i.id === p)?.discovered).map((p) => (
-          <Button key={p} size="sm" variant="ghost" onClick={() => addRouteStop(p)}>
-            + {portName(p)}
-          </Button>
-        ))}
-      </div>
-      {route?.length ? (
-        <Button className="mt-3" variant={held ? "primary" : "ghost"} disabled={atSea && !held} onClick={() => holdShip(!held)}>
-          {held ? "Release route" : "Hold in port"}
+      {!inEurope ? (
+        <Button className="mt-3" variant="ghost" disabled={atSea} onClick={() => sailEurope()}>
+          Sail to Europe once · 8 days
         </Button>
       ) : null}
     </div>
   );
-}
-
-function cycleGood(
-  stop: RouteStop,
-  id: GoodId,
-  apply: (patch: Partial<RouteStop>) => void,
-) {
-  const load = { ...stop.load };
-  const unload = { ...stop.unload };
-  const hadLoad = (load[id] ?? 0) > 0;
-  const hadUnload = (unload[id] ?? 0) > 0;
-  delete load[id];
-  delete unload[id];
-  if (!hadLoad && !hadUnload) load[id] = 99;
-  else if (hadLoad) unload[id] = 99;
-  apply({ load, unload });
 }
 
 function Mini({

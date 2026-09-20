@@ -1,4 +1,5 @@
 import { BUILDING_BY_ID } from "@/game/data/catalog";
+import { buildingWanted } from "@/game/data/chains";
 import { uid } from "@/game/sim/rng";
 import type {
   BuildingId,
@@ -187,9 +188,25 @@ export function syncHousing(state: GameState, island: Island) {
 }
 
 export function autoAssign(state: GameState, island: Island) {
+  const orders = island.orders ?? [];
+
+  for (const c of state.colonists) {
+    if (c.islandId !== island.id || c.locked || !c.jobId) continue;
+    const b = island.buildings.find((bb) => bb.id === c.jobId);
+    if (!b) {
+      c.jobId = null;
+      c.trainDays = 0;
+      continue;
+    }
+    if (!buildingWanted(b.type, orders)) {
+      c.jobId = null;
+      c.trainDays = 0;
+    }
+  }
+
   const ranked = island.buildings
     .map((b) => ({ b, def: BUILDING_BY_ID[b.type] }))
-    .filter((x) => x.def.workers > 0)
+    .filter((x) => x.def.workers > 0 && buildingWanted(x.b.type, orders))
     .sort((a, b) => a.def.priority - b.def.priority);
 
   for (const { b, def } of ranked) {
@@ -210,6 +227,12 @@ export function autoAssign(state: GameState, island: Island) {
     }
     b.idle = workersOn(state, b.id).length < def.workers;
   }
+
+  for (const b of island.buildings) {
+    const def = BUILDING_BY_ID[b.type];
+    if (def.workers <= 0) continue;
+    if (!buildingWanted(b.type, orders) && !workersOn(state, b.id).length) b.idle = true;
+  }
 }
 
 export function refreshPeople(state: GameState) {
@@ -221,11 +244,14 @@ export function refreshPeople(state: GameState) {
   state.settlers = unhousedCount(state);
 }
 
-export function emptyShipFields(ship: Partial<Ship> = {}): Pick<Ship, "held" | "route" | "routeIndex"> {
+export function emptyShipFields(
+  ship: Partial<Ship> = {},
+): Pick<Ship, "held" | "route" | "routeIndex" | "order"> {
   return {
     held: ship.held ?? false,
     route: ship.route ?? null,
     routeIndex: ship.routeIndex ?? 0,
+    order: ship.order ?? null,
   };
 }
 

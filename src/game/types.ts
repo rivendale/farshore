@@ -66,6 +66,8 @@ export type BuildingId =
 export type ScreenId = "title" | "nation" | "play" | "victory";
 export type PlayView = "island" | "world" | "hold" | "crown";
 
+export type ChainId = "timber" | "cloth" | "tobacco" | "rum" | "furs" | "iron" | "silver";
+
 export type Stock = Partial<Record<GoodId, number>>;
 
 export type Tile = {
@@ -122,6 +124,7 @@ export type Island = {
   storage: Stock;
   storageCap: number;
   native: NativeState | null;
+  orders: ChainId[];
 };
 
 export type ShipMission = "idle" | "europe" | "explore" | "transfer" | "diplomacy";
@@ -131,6 +134,11 @@ export type RouteStop = {
   load: Stock;
   unload: Stock;
   sell: boolean;
+};
+
+export type ShipOrder = {
+  chain: ChainId;
+  home: IslandId;
 };
 
 export type Ship = {
@@ -146,6 +154,7 @@ export type Ship = {
   held: boolean;
   route: RouteStop[] | null;
   routeIndex: number;
+  order: ShipOrder | null;
 };
 
 export type GameEvent = {
@@ -214,7 +223,7 @@ export type GameState = {
   selectedIslandId: IslandId;
   selectedTile: { x: number; y: number } | null;
   selectedShipId: string;
-  sheet: "none" | "build" | "tile" | "ship" | "native" | "event";
+  sheet: "none" | "build" | "tile" | "ship" | "native" | "event" | "orders";
   islands: Island[];
   ships: Ship[];
   colonists: Colonist[];

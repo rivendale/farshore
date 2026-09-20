@@ -12,7 +12,7 @@ import { asset } from "@/lib/asset";
 
 export const DAY_SECONDS = 1.15;
 export const SAVE_KEY = "farshore.save.v1";
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 export const MAP_SIZE = 9;
 
 export const GOODS: {

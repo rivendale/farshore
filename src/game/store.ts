@@ -12,6 +12,7 @@ import {
   totalPop,
   totalStock,
 } from "@/game/data/catalog";
+import { CHAIN_BY_ID, MAX_ORDERS } from "@/game/data/chains";
 import {
   PROFESSIONS,
   SHIP_NAMES,
@@ -21,13 +22,14 @@ import {
 } from "@/game/data/people";
 import { createGame } from "@/game/sim/create";
 import { royalHost, rivalHost } from "@/game/sim/combat";
-import { emptyStop } from "@/game/sim/routes";
+import { depart, emptyStop, loadChainCargo } from "@/game/sim/routes";
 import { concludeWar, landHost, makeWar } from "@/game/sim/war";
 import { clearSave, loadSave, writeSave } from "@/game/persist";
 import { uid } from "@/game/sim/rng";
 import { catchUp, tickDay } from "@/game/sim/tick";
 import type {
   BuildingId,
+  ChainId,
   GameState,
   GoodId,
   IslandId,
@@ -69,6 +71,10 @@ type Actions = {
   buyMuskets: () => string | null;
   buyShip: () => string | null;
   holdShip: (held: boolean) => void;
+  openOrders: () => void;
+  toggleOrder: (chain: ChainId) => string | null;
+  setShipOrder: (chain: ChainId, home?: IslandId) => string | null;
+  clearShipOrder: () => void;
   addRouteStop: (at: IslandId | "europe") => void;
   updateRouteStop: (index: number, patch: Partial<RouteStop>) => void;
   removeRouteStop: (index: number) => void;
@@ -238,7 +244,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
       islands,
       colonists: state.colonists.map((c) => ({ ...c })),
       tutorialStep,
-      tutorialDone: tutorialStep >= 5 ? true : state.tutorialDone,
+      tutorialDone: tutorialStep >= 6 ? true : state.tutorialDone,
       sheet: "tile" as const,
     });
     set(next);
@@ -604,6 +610,7 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
       held: false,
       route: null,
       routeIndex: 0,
+      order: null,
     };
     const next = {
       ...state,
@@ -625,6 +632,125 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
       ...state,
       ships: state.ships.map((s) => (s.id === ship.id ? { ...s, held } : s)),
     };
+    set(next);
+    scheduleSave(next);
+  },
+
+  openOrders: () =>
+    set({ sheet: get().sheet === "orders" ? "none" : "orders", selectedTile: get().selectedTile }),
+
+  toggleOrder: (chain) => {
+    const state = get();
+    const isle = currentIsland(state);
+    if (!isle.owned) return "This shore is not yours.";
+    let orders = [...(isle.orders ?? [])];
+    const on = orders.includes(chain);
+    if (on) orders = orders.filter((id) => id !== chain);
+    else {
+      if (orders.length >= MAX_ORDERS) return "Drop a fortune first. Two is the stretch.";
+      orders = [...orders, chain];
+    }
+    const islands = state.islands.map((i) => (i.id === isle.id ? { ...i, orders } : i));
+    let tutorialStep = state.tutorialStep;
+    let tutorialDone = state.tutorialDone;
+    if (!tutorialDone && tutorialStep >= 5) {
+      tutorialStep = 6;
+      tutorialDone = true;
+    }
+    const next = commit({
+      ...state,
+      islands,
+      colonists: state.colonists.map((c) => ({ ...c })),
+      tutorialStep,
+      tutorialDone,
+    });
+    const label = CHAIN_BY_ID[chain].name.toLowerCase();
+    notify(
+      next,
+      on ? `You pull ${isle.name} off ${label}.` : `You put ${isle.name} on ${label}. The island staffs it.`,
+      on ? "info" : "good",
+    );
+    set(next);
+    scheduleSave(next);
+    return null;
+  },
+
+  setShipOrder: (chain, home) => {
+    const state = get();
+    const ship = selectedShip(state);
+    if (!ship) return "No ship.";
+    if (ship.mission !== "idle") return "The ship is at sea.";
+    const islandId = home ?? state.selectedIslandId;
+    const isle = state.islands.find((i) => i.id === islandId);
+    if (!isle?.owned) return "That shore is not yours.";
+    if (!hasDock(state, islandId)) return "Need a dock first.";
+    const current = [...(isle.orders ?? [])];
+    let islands = state.islands.map((i) => ({
+      ...i,
+      storage: { ...i.storage },
+      orders: [...(i.orders ?? [])],
+      buildings: i.buildings.map((b) => ({ ...b })),
+    }));
+    if (!current.includes(chain)) {
+      if (current.length >= MAX_ORDERS) {
+        return `Name ${CHAIN_BY_ID[chain].name.toLowerCase()} on ${isle.name} first.`;
+      }
+      islands = islands.map((i) =>
+        i.id === isle.id ? { ...i, orders: [...i.orders, chain] } : i,
+      );
+    }
+    const ships = state.ships.map((s) =>
+      s.id === ship.id
+        ? {
+            ...s,
+            cargo: { ...s.cargo },
+            order: { chain, home: islandId },
+            route: null,
+            routeIndex: 0,
+            held: false,
+          }
+        : { ...s, cargo: { ...s.cargo } },
+    );
+    let tutorialStep = state.tutorialStep;
+    let tutorialDone = state.tutorialDone;
+    if (!tutorialDone && tutorialStep >= 5) {
+      tutorialStep = 6;
+      tutorialDone = true;
+    }
+    const next = commit({
+      ...state,
+      islands,
+      ships,
+      colonists: state.colonists.map((c) => ({ ...c })),
+      tutorialStep,
+      tutorialDone,
+    });
+    const live = next.ships.find((s) => s.id === ship.id);
+    if (live && live.location === islandId && live.mission === "idle") {
+      const n = loadChainCargo(next, live, islandId, chain);
+      if (n > 0) depart(live, "europe");
+    }
+    notify(
+      next,
+      `${ship.name} runs ${CHAIN_BY_ID[chain].name.toLowerCase()} to Europe. You named it; she works the sea.`,
+      "good",
+    );
+    set(next);
+    scheduleSave(next);
+    return null;
+  },
+
+  clearShipOrder: () => {
+    const state = get();
+    const ship = selectedShip(state);
+    if (!ship) return;
+    const next = {
+      ...state,
+      ships: state.ships.map((s) =>
+        s.id === ship.id ? { ...s, order: null, held: false } : s,
+      ),
+    };
+    notify(next, `${ship.name} is yours again. No loop.`, "info");
     set(next);
     scheduleSave(next);
   },
@@ -778,9 +904,9 @@ export const useGame = create<GameState & Actions>()((set, get) => ({
     return null;
   },
 
-  skipTutorial: () => set({ tutorialDone: true, tutorialStep: 5 }),
+  skipTutorial: () => set({ tutorialDone: true, tutorialStep: 6 }),
   advanceTutorial: () =>
-    set((s) => ({ tutorialStep: s.tutorialStep + 1, tutorialDone: s.tutorialStep + 1 >= 5 })),
+    set((s) => ({ tutorialStep: s.tutorialStep + 1, tutorialDone: s.tutorialStep + 1 >= 6 })),
 
   refuseTax: () => {
     const state = get();

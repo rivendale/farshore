@@ -303,6 +303,7 @@ export function migrateWorld(state: GameState): GameState {
       ...i,
       native: i.native ? fillNative(i.native, i) : null,
       buildings: i.buildings.map((b) => ({ ...b })),
+      orders: Array.isArray(i.orders) ? i.orders : [],
     })),
     rival: state.rival
       ? {

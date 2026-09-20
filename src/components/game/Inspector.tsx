@@ -1,15 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { GoodIcon } from "@/components/game/GoodIcon";
-import {
-  ART,
-  BUILDING_BY_ID,
-  BUILDINGS,
-  TRIBES,
-  goodName,
-  isUnlocked,
-  stockHas,
-  tileAllows,
-} from "@/game/data/catalog";
+import { ART, BUILDING_BY_ID, BUILDINGS, TRIBES, goodName, isUnlocked, stockHas, tileAllows } from "@/game/data/catalog";
+import { chainOfBuilding, CHAIN_BY_ID } from "@/game/data/chains";
 import {
   JOB_PROFESSION,
   joblessOn,
@@ -27,7 +19,7 @@ import { Hammer, Trash2, X } from "lucide-react";
 export function Inspector() {
   const sheet = useGame((s) => s.sheet);
   const close = useGame((s) => s.closeSheet);
-  if (sheet === "none") return null;
+  if (sheet === "none" || sheet === "orders") return null;
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-[4.6rem] z-20 px-3">
       <div className="pointer-events-auto mx-auto max-w-lg overflow-hidden rounded-[var(--radius-xl)] border border-border bg-surface shadow-[var(--shadow-panel)]">
@@ -212,6 +204,13 @@ function TileDetail() {
       <p className="mt-2 text-sm leading-relaxed text-muted">{def.blurb}</p>
       {want ? (
         <p className="mt-1 text-xs text-faint">Wants a {professionName(want)} for the fat yield.</p>
+      ) : null}
+      {chainOfBuilding(b.type) && island.owned ? (
+        <p className="mt-1 text-xs text-faint">
+          {(island.orders ?? []).includes(chainOfBuilding(b.type)!)
+            ? `On your ${CHAIN_BY_ID[chainOfBuilding(b.type)!].name.toLowerCase()} fortune — the island staffs this.`
+            : "Not a named fortune yet. Name it and hands will come."}
+        </p>
       ) : null}
       {Object.entries(def.produces).some(([, v]) => v) ? (
         <p className="mt-2 text-sm">
