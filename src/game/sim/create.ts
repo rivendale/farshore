@@ -63,7 +63,7 @@ export function createGame(nationId: NationId, seed = Date.now()): GameState {
       {
         id: uid("ev"),
         day: 1,
-        text: `${nation.name} founds a colony on Haven Isle.`,
+        text: `You make landfall on Haven Isle. The rest is on you.`,
         tone: "good",
       },
     ],

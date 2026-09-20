@@ -17,11 +17,11 @@ export function CrownView() {
     <div className="absolute inset-0 flex flex-col overflow-y-auto bg-bg px-4 pb-36 pt-24">
       <p className="font-display text-sm tracking-[0.18em] text-accent uppercase">The King</p>
       <h2 className="mt-1 font-display text-3xl">
-        {state.independent ? "A free republic" : "Independence"}
+        {state.independent ? "Your republic" : "Your independence"}
       </h2>
       <p className="mt-2 text-sm leading-relaxed text-muted">
-        Raise independence to 50%, then declare. Fight the King's army on the beach — or stay loyal
-        and win with a palace instead.
+        Get your people to 50%, then declare — and meet the King on the beach. Or stay loyal and
+        raise a palace with your name on it.
       </p>
 
       <div className="mt-5 rounded-[var(--radius-lg)] border border-border bg-surface p-4">
@@ -134,7 +134,7 @@ export function CrownView() {
         })}
       </ul>
       <Button variant="quiet" className="mt-8" onClick={() => state.abandon()}>
-        Abandon colony
+        Abandon your colony
       </Button>
     </div>
   );

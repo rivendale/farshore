@@ -1,6 +1,6 @@
 # Farshore
 
-Mobile colony sim. Found the colony, establish the supply chains, trade with Europe, and win independence — or stay loyal and raise a palace.
+Mobile colony sim. You found the colony, you build the chains, you win your independence — or you stay loyal and raise a palace.
 
 Play it: [rivendale.github.io/farshore](https://rivendale.github.io/farshore/)
 

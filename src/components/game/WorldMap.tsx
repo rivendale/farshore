@@ -168,7 +168,7 @@ export function WorldMap() {
           {islands.every((i) => i.discovered) ? (
             <div className="flex flex-col gap-2">
               <p className="text-sm text-muted">
-                All four islands are found. {ship?.name ?? "The ship"} sails on your order.
+                You've found all four shores. {ship?.name ?? "Your ship"} sails on your order.
               </p>
               <div className="flex flex-wrap gap-2">
                 {islands

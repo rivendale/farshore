@@ -273,7 +273,7 @@ function TileDetail() {
             </ul>
           ) : (
             <p className="mt-1 text-sm text-muted">
-              {housed ? "No one on this work." : "Raise a hut first. Hands need a roof."}
+              {housed ? "No one on this work." : "Raise a hut first. Your people need a roof."}
             </p>
           )}
           {crew.length < def.workers && pool.length ? (

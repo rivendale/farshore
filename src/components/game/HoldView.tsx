@@ -138,8 +138,8 @@ export function HoldView() {
             Sail to Europe · 8 days
           </Button>
           <p className="text-sm text-muted">
-            Load goods from the island, sell them in Europe, or set a looping route and let the ship
-            work.
+            Load what you made. Sell it in Europe. Or set a looping route and let your ship work
+            while you sleep.
           </p>
         </div>
       )}

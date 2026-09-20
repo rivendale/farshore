@@ -634,8 +634,8 @@ export const NATIONS: Record<
   england: {
     id: "england",
     name: "England",
-    motto: "Independence takes root.",
-    blurb: "An extra settler. Independence grows faster. The King watches closely.",
+    motto: "I will have my own laws.",
+    blurb: "You bring an extra hand. Independence comes easier — and the King already has your name.",
     gold: 180,
     settlers: 5,
     militia: 0,
@@ -649,8 +649,8 @@ export const NATIONS: Record<
   france: {
     id: "france",
     name: "France",
-    motto: "Friendship before the sword.",
-    blurb: "Natives start warmer. Farms and fisheries run rich.",
+    motto: "Live with the land.",
+    blurb: "You'd rather eat than fight. The people already here trust you. Farms and nets work harder.",
     gold: 170,
     settlers: 4,
     militia: 0,
@@ -664,8 +664,8 @@ export const NATIONS: Record<
   spain: {
     id: "spain",
     name: "Spain",
-    motto: "Gold and steel.",
-    blurb: "A purse of silver and four armed men on the beach.",
+    motto: "Gold in the chest. Steel on the sand.",
+    blurb: "You land with silver and four armed men. The beach is already yours.",
     gold: 260,
     settlers: 4,
     militia: 4,
@@ -679,8 +679,8 @@ export const NATIONS: Record<
   netherlands: {
     id: "netherlands",
     name: "United Provinces",
-    motto: "Trade is the empire.",
-    blurb: "Better prices and a roomier ship.",
+    motto: "The books don't lie.",
+    blurb: "You came to trade, not to kneel. Europe pays you better. Your ship holds more.",
     gold: 220,
     settlers: 4,
     militia: 0,
@@ -737,7 +737,7 @@ export const ISLAND_META: Record<
 > = {
   haven: {
     name: "Haven Isle",
-    blurb: "Your first island. Mixed timber, grass, and a hill or two.",
+    blurb: "Your first shore. Mixed timber, grass, and a hill or two.",
     climate: "temperate",
   },
   kaneska: {

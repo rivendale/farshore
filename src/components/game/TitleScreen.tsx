@@ -30,14 +30,14 @@ export function TitleScreen() {
         <div className="absolute inset-0 bg-gradient-to-b from-bg/40 via-bg/75 to-bg" />
         <div className="relative z-10 mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-8 pt-[max(2.5rem,env(safe-area-inset-top))]">
           <p className="font-display text-sm tracking-[0.22em] text-accent uppercase">
-            Choose a nation
+            Choose your background
           </p>
           <h1 className="mt-2 font-display text-4xl font-medium leading-tight tracking-tight">
-            Who founds the colony?
+            You sail under this flag.
           </h1>
           <p className="mt-3 max-w-md text-base leading-relaxed text-muted">
-            Four nations. One New World. Build supply chains, trade with Europe, win independence —
-            or stay loyal and raise a palace.
+            Your ship, your people, your fortune. Build the chains. Trade Europe. Win independence —
+            or stay loyal and raise a palace with your name on it.
           </p>
           <div className="mt-6 flex flex-col gap-3">
             {(Object.keys(NATIONS) as NationId[]).map((id) => {
@@ -82,13 +82,13 @@ export function TitleScreen() {
       <div className="absolute inset-0 bg-gradient-to-b from-bg/20 via-bg/35 to-bg" />
       <div className="relative z-10 mt-auto flex w-full flex-col px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-10">
         <p className="font-display text-sm tracking-[0.28em] text-primary uppercase">
-          Colony sim
+          Your New World
         </p>
         <h1 className="mt-2 font-display text-[3.4rem] font-medium leading-[0.95] tracking-[-0.03em]">
           Farshore
         </h1>
         <p className="mt-4 max-w-sm text-base leading-relaxed text-fg/90">
-          Found the colony. Establish the supply chains. Win independence.
+          You found the colony. You build the chains. You win your independence — or you don’t.
         </p>
         <div className="mt-8 flex flex-col gap-3">
           <Button size="lg" onClick={() => setScreen("nation")}>
