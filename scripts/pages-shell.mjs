@@ -7,7 +7,8 @@
 import { cp, mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const BASE = "/farshore/";
+// Served from the root of farshore.icf.games; keep in step with vite.config.ts base.
+const BASE = "/";
 const SRC_CANDIDATES = ["dist/client", ".output/public"];
 const DEST = ".output/public";
 
