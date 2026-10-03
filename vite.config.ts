@@ -148,7 +148,9 @@ function authPopupPlugin(): Plugin {
 const pages = process.env.NITRO_PRESET === "github_pages" || process.env.GITHUB_PAGES === "1";
 
 export default defineConfig(({ command, isPreview }) => ({
-  base: pages ? "/farshore/" : "/",
+  // Served from the root of farshore.icf.games (custom domain on Pages), so the
+  // base is "/" for every build. The router and favicon follow BASE_URL.
+  base: "/",
   server: {
     host: "0.0.0.0",
     port: 8080,
