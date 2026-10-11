@@ -265,14 +265,52 @@ export function IslandView() {
     const el = wrapRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
-    // Screen -> world -> tile: the inverse of iso().
-    const px = (e.clientX - rect.left - cam.x) / cam.z - PAD - TW / 2;
-    const py = (e.clientY - rect.top - cam.y) / cam.z - PAD_TOP - TH / 2;
-    const a = px / (TW / 2) - (world.n - 1);
-    const b = py / (TH / 2);
-    const x = Math.round((a + b) / 2);
-    const y = Math.round((b - a) / 2);
-    if (x >= 0 && y >= 0 && x < island.width && y < island.height) selectTile(x, y);
+    const wx = (e.clientX - rect.left - cam.x) / cam.z;
+    const wy = (e.clientY - rect.top - cam.y) / cam.z;
+    const hit = tileAt(wx, wy);
+    if (hit) selectTile(hit.x, hit.y);
+  };
+
+  /**
+   * The tile a tap at world point (wx, wy) means.
+   * 1. A building or village is drawn as a tall sprite rising above its diamond, so a tap
+   *    on its body (which overlaps the tiles behind) means that building: the sprites are
+   *    tested front to back against a footprint-plus-height region.
+   * 2. Otherwise the ground diamond under the point, by inverting iso().
+   * 3. The beach is painted a little beyond the coastal diamonds; a tap there resolves to
+   *    water, so it snaps to the nearest land tile within that margin.
+   */
+  const tileAt = (wx: number, wy: number) => {
+    const tall = island.buildings
+      .map((bb) => ({ x: bb.x, y: bb.y }))
+      .concat(island.native ? [{ x: island.native.x, y: island.native.y }] : [])
+      .sort((p, q) => q.x + q.y - (p.x + p.y));
+    for (const s of tall) {
+      const { cx, cy } = iso(s.x, s.y, world.n);
+      if (Math.abs(wx - cx) <= TW * 0.3 && wy >= cy - TW * 0.78 && wy <= cy + TH / 2) return s;
+    }
+    const a = (wx - PAD - TW / 2) / (TW / 2) - (world.n - 1);
+    const b = (wy - PAD_TOP - TH / 2) / (TH / 2);
+    const fx = (a + b) / 2;
+    const fy = (b - a) / 2;
+    const inside = (x: number, y: number) => x >= 0 && y >= 0 && x < island.width && y < island.height;
+    const terrain = (x: number, y: number) => island.tiles.find((tt) => tt.x === x && tt.y === y)?.terrain ?? "water";
+    const x = Math.round(fx);
+    const y = Math.round(fy);
+    if (inside(x, y) && terrain(x, y) !== "water") return { x, y };
+    // Beach margin: the painted beach reaches up to ~0.4 tile beyond a coastal diamond.
+    let best: { x: number; y: number } | null = null;
+    let bestD = 0.9;
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (!inside(nx, ny) || terrain(nx, ny) === "water") continue;
+        const d = Math.abs(fx - nx) + Math.abs(fy - ny);
+        if (d < bestD) { bestD = d; best = { x: nx, y: ny }; }
+      }
+    }
+    if (best) return best;
+    return inside(x, y) ? { x, y } : null;
   };
 
   const onWheel = (e: React.WheelEvent) => {
