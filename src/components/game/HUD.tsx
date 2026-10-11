@@ -164,7 +164,7 @@ function SpeedBtn({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className={`flex h-8 min-w-8 items-center justify-center rounded-[var(--radius-sm)] text-[11px] ${
+      className={`flex h-8 min-w-8 items-center justify-center rounded-[var(--radius-sm)] text-[11px] any-pointer-coarse:h-11 any-pointer-coarse:min-w-11 ${
         active ? "bg-primary text-primary-fg" : "text-muted"
       }`}
     >

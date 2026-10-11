@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* A phone held sideways: wide but short. */
+@custom-variant short-landscape (@media (orientation: landscape) and (max-height: 500px));
+
 @theme {
   --color-bg: #0c1210;
   --color-bg-elevated: #141c19;

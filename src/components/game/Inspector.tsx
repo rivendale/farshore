@@ -20,9 +20,11 @@ export function Inspector() {
   const sheet = useGame((s) => s.sheet);
   const close = useGame((s) => s.closeSheet);
   if (sheet === "none" || sheet === "orders") return null;
+  // On a phone held sideways a bottom sheet covered nearly the whole map, so there it
+  // becomes a side panel on the right, from below the top bar to above the bottom bar.
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-[4.6rem] z-20 px-3">
-      <div className="pointer-events-auto mx-auto max-w-lg overflow-hidden rounded-[var(--radius-xl)] border border-border bg-surface shadow-[var(--shadow-panel)]">
+    <div className="pointer-events-none absolute inset-x-0 bottom-[4.6rem] z-20 px-3 short-landscape:inset-x-auto short-landscape:top-[5rem] short-landscape:right-2 short-landscape:w-[min(22rem,46vw)] short-landscape:px-0">
+      <div className="pointer-events-auto mx-auto max-w-lg overflow-hidden rounded-[var(--radius-xl)] border border-border bg-surface shadow-[var(--shadow-panel)] short-landscape:flex short-landscape:h-full short-landscape:flex-col">
         <div className="flex items-center justify-between px-4 pt-3">
           <p className="font-display text-lg leading-none">
             {sheet === "build" ? "Build" : sheet === "native" ? "A people already here" : "Plot"}
@@ -36,7 +38,7 @@ export function Inspector() {
             <X className="size-5" />
           </button>
         </div>
-        <div className="max-h-[42vh] overflow-y-auto px-3 pb-3 pt-2">
+        <div className="max-h-[42vh] overflow-y-auto px-3 pb-3 pt-2 short-landscape:max-h-none short-landscape:min-h-0 short-landscape:flex-1">
           {sheet === "build" ? <BuildList /> : null}
           {sheet === "tile" ? <TileDetail /> : null}
           {sheet === "native" ? <NativeDetail /> : null}
