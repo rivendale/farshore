@@ -160,11 +160,14 @@ function SpeedBtn({
   children: React.ReactNode;
 }) {
   return (
+    // On a touch screen the 32px button gets a 44px-tall tap area from an invisible margin
+    // (::after), so the header's layout, height and the cards below it do not move.
+    // Sideways the margin is half the 4px gap, so neighbouring targets never overlap.
     <button
       type="button"
       aria-label={label}
       onClick={onClick}
-      className={`flex h-8 min-w-8 items-center justify-center rounded-[var(--radius-sm)] text-[11px] ${
+      className={`flex h-8 min-w-8 items-center justify-center rounded-[var(--radius-sm)] text-[11px] relative any-pointer-coarse:after:absolute any-pointer-coarse:after:-inset-x-0.5 any-pointer-coarse:after:-inset-y-1.5 any-pointer-coarse:after:content-[''] ${
         active ? "bg-primary text-primary-fg" : "text-muted"
       }`}
     >
