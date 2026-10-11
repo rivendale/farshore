@@ -368,7 +368,15 @@ export function IslandView() {
       if (props.length) stands.push({ x: tt.x, y: tt.y, props });
     }
     stands.sort((p, q) => q.x + q.y - (p.x + p.y));
+    // The landing marker is solid and rises above its tile; it is drawn on its tile's
+    // layer, so it takes the tap ahead of every sprite on a tile behind it.
+    let marker: { x: number; y: number } | null = null;
+    if (war?.landed && !war.resolved && war.islandId === island.id) {
+      const { cx, cy } = iso(war.x, war.y, world.n);
+      if (Math.abs(wx - cx) <= 30 && wy >= cy - 52 && wy <= cy + 8) marker = { x: war.x, y: war.y };
+    }
     for (const s of stands) {
+      if (marker && marker.x + marker.y >= s.x + s.y) return marker;
       for (const pr of s.props) {
         if (wx < pr.left || wx > pr.left + pr.size || wy < pr.top || wy > pr.top + pr.size) continue;
         // Only where the sprite is actually painted: its transparent margins (and the
@@ -376,11 +384,7 @@ export function IslandView() {
         if (spriteOpaqueAt(pr.src, (wx - pr.left) / pr.size, (wy - pr.top) / pr.size)) return { x: s.x, y: s.y };
       }
     }
-    // The landing marker is solid and rises above its tile.
-    if (war?.landed && !war.resolved && war.islandId === island.id) {
-      const { cx, cy } = iso(war.x, war.y, world.n);
-      if (Math.abs(wx - cx) <= 30 && wy >= cy - 52 && wy <= cy + 8) return { x: war.x, y: war.y };
-    }
+    if (marker) return marker;
     const a = (wx - PAD - TW / 2) / (TW / 2) - (world.n - 1);
     const b = (wy - PAD_TOP - TH / 2) / (TH / 2);
     const fx = (a + b) / 2;
