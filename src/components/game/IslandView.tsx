@@ -61,18 +61,25 @@ function loadImage(src: string) {
 }
 
 /** Paint the island's ground onto `canvas`, at most 1.5x density to stay light on a phone. */
-async function paintGround(canvas: HTMLCanvasElement, island: { width: number; height: number; tiles: { x: number; y: number; terrain: string }[] }) {
+async function paintGround(
+  canvas: HTMLCanvasElement,
+  island: { width: number; height: number; tiles: { x: number; y: number; terrain: string }[] },
+  isCurrent: () => boolean,
+) {
   const { n, width, height } = worldSize(island.width, island.height);
   const dpr = Math.min(1.5, window.devicePixelRatio || 1);
+  const kinds = ["sand", "grass", "forest", "hills"] as const;
+  const imgs = await Promise.all(kinds.map((k) => loadImage(TILE_ART[k]).catch(() => null)));
+  // A newer paint (another island, changed terrain) may have started while the textures
+  // loaded: only the latest may touch the canvas, or two paints stack their translucent
+  // layers or one leaves the other island's ground behind.
+  if (!isCurrent()) return;
   canvas.width = Math.round(width * dpr);
   canvas.height = Math.round(height * dpr);
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, height);
-
-  const kinds = ["sand", "grass", "forest", "hills"] as const;
-  const imgs = await Promise.all(kinds.map((k) => loadImage(TILE_ART[k]).catch(() => null)));
   const pattern: Record<string, CanvasPattern | string> = {};
   kinds.forEach((k, i) => {
     const img = imgs[i];
@@ -186,7 +193,11 @@ export function IslandView() {
   const terrainKey = island.tiles.map((t) => t.terrain[0]).join("");
   useEffect(() => {
     const c = groundRef.current;
-    if (c) void paintGround(c, island);
+    let current = true;
+    if (c) void paintGround(c, island, () => current);
+    return () => {
+      current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [island.id, terrainKey]);
 

@@ -190,30 +190,15 @@
   }
 }
 
-@keyframes sloop-bob-center {
-  0%,
-  100% {
-    transform: translate(-50%, 0);
-  }
-  50% {
-    transform: translate(-50%, 3px);
-  }
-}
-
 .sloop-bob {
   animation: sloop-bob 2.8s ease-in-out infinite;
-}
-
-.sloop-bob-center {
-  animation: sloop-bob-center 2.8s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .smoke-puff,
   .goods-float,
   .water-gleam,
-  .sloop-bob,
-  .sloop-bob-center {
+  .sloop-bob {
     animation: none !important;
   }
 }
