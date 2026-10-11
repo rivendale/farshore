@@ -18,7 +18,7 @@ export function Tutorial() {
   return (
     // On a sideways phone the Build panel takes the right side (Inspector), so the
     // tutorial card keeps to the space left of it rather than running underneath.
-    <div className="pointer-events-none absolute inset-x-0 top-[5.6rem] z-20 px-3 short-landscape:pr-[calc(min(22rem,46vw)+1rem)]">
+    <div className="pointer-events-none absolute inset-x-0 top-[5.6rem] z-20 px-3 short-landscape:pr-[calc(min(22rem,46vw)+1rem+env(safe-area-inset-right))]">
       <div className="pointer-events-auto mx-auto flex max-w-lg items-start gap-3 rounded-[var(--radius-md)] border border-border bg-bg/85 p-3 backdrop-blur-sm">
         <p className="flex-1 text-sm leading-relaxed text-fg">{STEPS[step]}</p>
         <Button size="sm" variant="quiet" onClick={skip}>
