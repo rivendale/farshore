@@ -27,6 +27,8 @@ const PAD_TOP = 96;
 const PAD = 48;
 /** A tile must stay at least this wide on screen to tap; below it, the map pans instead. */
 const MIN_TILE_PX = 56;
+/** A building's sprite box, world px (it stands on its tile and rises above it). */
+const SPRITE = TW * 0.94;
 /** Screen space the HUD (top) and the fortune bar (bottom) cover over this view, px. */
 const OVERLAY_TOP = 88;
 const OVERLAY_BOTTOM = 64;
@@ -49,6 +51,38 @@ function diamond(ctx: CanvasRenderingContext2D, cx: number, cy: number, scale = 
   ctx.lineTo(cx, cy + hh);
   ctx.lineTo(cx - hw, cy);
   ctx.closePath();
+}
+
+/** Alpha masks of building sprites, 48x48, for tap hit-testing on painted pixels. */
+const MASK = 48;
+const masks = new Map<string, Uint8ClampedArray | "loading">();
+
+function spriteOpaqueAt(src: string, u: number, v: number): boolean {
+  const m = masks.get(src);
+  if (m === undefined) {
+    masks.set(src, "loading");
+    loadImage(src)
+      .then((img) => {
+        const c = document.createElement("canvas");
+        c.width = c.height = MASK;
+        const g = c.getContext("2d", { willReadFrequently: true });
+        if (!g) return;
+        // object-contain in a square box: fit the image the same way.
+        const k = Math.min(MASK / img.width, MASK / img.height);
+        const w = img.width * k, h = img.height * k;
+        g.drawImage(img, (MASK - w) / 2, (MASK - h) / 2, w, h);
+        masks.set(src, g.getImageData(0, 0, MASK, MASK).data);
+      })
+      .catch(() => masks.delete(src));
+  }
+  if (!(m instanceof Uint8ClampedArray)) {
+    // Not loaded yet: count only the middle of the sprite's lower half, where every
+    // building has walls, so the first tap still works and margins stay the ground's.
+    return u > 0.3 && u < 0.7 && v > 0.35 && v < 0.9;
+  }
+  const px = Math.min(MASK - 1, Math.max(0, Math.floor(u * MASK)));
+  const py = Math.min(MASK - 1, Math.max(0, Math.floor(v * MASK)));
+  return m[(py * MASK + px) * 4 + 3] > 128;
 }
 
 function loadImage(src: string) {
@@ -189,6 +223,15 @@ export function IslandView() {
     z: 1,
   });
 
+  // Load the tap masks of the sprites on this island up front, so the first tap on a
+  // building already tests its painted pixels.
+  const spriteKey = island.buildings.map((bb) => bb.type).sort().join(",") + (island.native ? ",village" : "");
+  useEffect(() => {
+    for (const bb of island.buildings) spriteOpaqueAt(ART[bb.type], 0.5, 0.5);
+    if (island.native) spriteOpaqueAt(ART.village, 0.5, 0.5);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spriteKey]);
+
   // Repaint the ground when the island or its terrain changes (not on every tick).
   const terrainKey = island.tiles.map((t) => t.terrain[0]).join("");
   useEffect(() => {
@@ -274,20 +317,26 @@ export function IslandView() {
   /**
    * The tile a tap at world point (wx, wy) means.
    * 1. A building or village is drawn as a tall sprite rising above its diamond, so a tap
-   *    on its body (which overlaps the tiles behind) means that building: the sprites are
-   *    tested front to back against a footprint-plus-height region.
+   *    on its painted body (which overlaps the tiles behind) means that building: the
+   *    sprites are tested front to back, on their opaque pixels only.
    * 2. Otherwise the ground diamond under the point, by inverting iso().
    * 3. The beach is painted a little beyond the coastal diamonds; a tap there resolves to
    *    water, so it snaps to the nearest land tile within that margin.
    */
   const tileAt = (wx: number, wy: number) => {
     const tall = island.buildings
-      .map((bb) => ({ x: bb.x, y: bb.y }))
-      .concat(island.native ? [{ x: island.native.x, y: island.native.y }] : [])
+      .map((bb) => ({ x: bb.x, y: bb.y, src: ART[bb.type] }))
+      .concat(island.native ? [{ x: island.native.x, y: island.native.y, src: ART.village }] : [])
       .sort((p, q) => q.x + q.y - (p.x + p.y));
     for (const s of tall) {
       const { cx, cy } = iso(s.x, s.y, world.n);
-      if (Math.abs(wx - cx) <= TW * 0.3 && wy >= cy - TW * 0.78 && wy <= cy + TH / 2) return s;
+      // The sprite's box, as drawn by box(SPRITE) below.
+      const left = cx - SPRITE / 2;
+      const top = cy + TH * 0.18 - SPRITE;
+      if (wx < left || wx > left + SPRITE || wy < top || wy > top + SPRITE) continue;
+      // Only where the sprite is actually painted: its transparent margins (and the clear
+      // plot behind it showing through them) stay the ground's.
+      if (spriteOpaqueAt(s.src, (wx - left) / SPRITE, (wy - top) / SPRITE)) return { x: s.x, y: s.y };
     }
     const a = (wx - PAD - TW / 2) / (TW / 2) - (world.n - 1);
     const b = (wy - PAD_TOP - TH / 2) / (TH / 2);
@@ -345,7 +394,6 @@ export function IslandView() {
     if (e.touches.length < 2) drag.current.pinching = false;
   };
 
-  const SPRITE = TW * 0.94;
   return (
     <div
       ref={wrapRef}
