@@ -10,7 +10,6 @@ from PIL import Image
 ROOT = Path("/workspace")
 OUT_B = ROOT / "public/game/buildings"
 OUT_P = ROOT / "public/game/props"
-OUT_T = ROOT / "public/game/tiles"
 OUT_I = ROOT / "public/game/islands"
 OUT_I.mkdir(parents=True, exist_ok=True)
 
@@ -92,36 +91,15 @@ def crop_content(img: Image.Image, pad: float = 0.12) -> Image.Image:
     return img.crop((x0, y0, min(img.width, x0 + side), min(img.height, y0 + side)))
 
 
-def wrap_blend(img: Image.Image, blend: int = 48) -> Image.Image:
-    arr = np.array(img.convert("RGB")).astype(np.float32)
-    h, w = arr.shape[:2]
-    for i in range(blend):
-        t = i / blend
-        arr[i] = arr[i] * t + arr[h - blend + i] * (1 - t)
-        arr[h - blend + i] = arr[i]
-        arr[:, i] = arr[:, i] * t + arr[:, w - blend + i] * (1 - t)
-        arr[:, w - blend + i] = arr[:, i]
-    return Image.fromarray(np.clip(arr, 0, 255).astype(np.uint8), "RGB")
-
-
 def main() -> None:
     for name, src in BUILDINGS.items():
         im = Image.open(IMG / src)
         save_png(im, OUT_B / name, 512)
         print("building", name)
 
-    water = Image.open(IMG / "07323503-7523-4513-8d5a-39eeb7efad51.jpg")
-    water = wrap_blend(water.resize((512, 512), Image.Resampling.LANCZOS), 64)
-    save_png(water, OUT_T / "water.png", 256)
-    tile = Image.open(OUT_T / "water.png")
-    check = Image.new("RGB", (512, 512))
-    t = tile.convert("RGB")
-    check.paste(t, (0, 0))
-    check.paste(t, (256, 0))
-    check.paste(t, (0, 256))
-    check.paste(t, (256, 256))
-    check.save(ROOT / "screenshots/water-2x2.png")
-    print("water")
+    # The island's terrain and sea textures (public/game/tiles/*-painted.jpg) and the
+    # tree and rock sprites (public/game/props/*.webp) are made outside this script, from
+    # look A's mockup (2026-10-11); the old water.png it produced here is retired.
 
     for name, src in PEOPLE.items():
         im = chroma_magenta(Image.open(IMG / src))

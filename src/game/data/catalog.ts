@@ -807,6 +807,9 @@ export const ART: Record<string, string> = {
   palace: asset("/game/buildings/palace.png"),
   patriot: asset("/game/buildings/patriot.png"),
   tree: asset("/game/props/tree.png"),
+  treePine: asset("/game/props/tree-pine.webp"),
+  treeBroadleaf: asset("/game/props/tree-broadleaf.webp"),
+  rockOutcrop: asset("/game/props/rock-outcrop.webp"),
   ship: asset("/game/props/ship.png"),
   sloop: asset("/game/props/sloop.png"),
   village: asset("/game/props/village.png"),
@@ -816,11 +819,12 @@ export const ART: Record<string, string> = {
 };
 
 export const TILE_ART: Record<Terrain, string> = {
-  water: asset("/game/tiles/water.png"),
-  sand: asset("/game/tiles/sand.png"),
-  grass: asset("/game/tiles/grass.png"),
-  forest: asset("/game/tiles/forest.png"),
-  hills: asset("/game/tiles/hills.png"),
+  // Painted, seamless textures for the isometric island (look A, 2026-10-11).
+  water: asset("/game/tiles/ocean-painted.jpg"),
+  sand: asset("/game/tiles/sand-painted.jpg"),
+  grass: asset("/game/tiles/grass-painted.jpg"),
+  forest: asset("/game/tiles/forest-painted.jpg"),
+  hills: asset("/game/tiles/hills-painted.jpg"),
 };
 
 export const PERSON_ART: Record<string, string> = {
