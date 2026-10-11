@@ -53,6 +53,30 @@ function diamond(ctx: CanvasRenderingContext2D, cx: number, cy: number, scale = 
   ctx.closePath();
 }
 
+/** A sprite standing on a tile: its image and its square box in world px. */
+type Prop = { src: string; left: number; top: number; size: number };
+
+/** A sprite box whose bottom centre stands a little below the tile's centre. */
+function standing(src: string, cx: number, cy: number, size: number, lift = 0.18, left?: number): Prop {
+  return { src, left: left ?? cx - size / 2, top: cy + TH * lift - size, size };
+}
+
+/**
+ * The terrain props a tile draws (trees on forest, a rock outcrop on hills). One
+ * definition for drawing them and for hit-testing taps on them, so the two cannot drift.
+ */
+function terrainProps(t: { x: number; y: number; terrain: string }, cx: number, cy: number): Prop[] {
+  if (t.terrain === "forest") {
+    // Two trees per forest tile, the mix varying by tile so the wood is not a grid of clones.
+    return [
+      standing((t.x + t.y) % 3 === 0 ? ART.treeBroadleaf : ART.treePine, cx, cy, TW * 0.62, -0.05, cx - TW * 0.42),
+      standing((t.x * 2 + t.y) % 3 === 1 ? ART.tree : (t.x + t.y) % 2 ? ART.treePine : ART.treeBroadleaf, cx, cy, TW * 0.7, 0.22, cx - TW * 0.05),
+    ];
+  }
+  if (t.terrain === "hills") return [standing(ART.rockOutcrop, cx, cy, TW * 0.62, 0.05)];
+  return [];
+}
+
 /** Alpha masks of building sprites, 48x48, for tap hit-testing on painted pixels. */
 const MASK = 48;
 const masks = new Map<string, Uint8ClampedArray | "loading">();
@@ -163,7 +187,13 @@ async function paintGround(
       // Punch out the inside, leaving a ring (the surf line).
       lc.globalCompositeOperation = "destination-out";
       lc.filter = `blur(${cut.blur}px)`;
-      for (const t of tiles) { const { cx, cy } = iso(t.x, t.y, n); diamond(lc, cx, cy, cut.scale); lc.fill(); }
+      for (const t of tiles) {
+        // The same per-tile wobble as the outer edge, so the ring keeps its width.
+        const { cx, cy } = iso(t.x, t.y, n);
+        const j = coastal(t.x, t.y) ? jitter(t.x, t.y) : { s: 0, dx: 0, dy: 0 };
+        diamond(lc, cx + j.dx, cy + j.dy, cut.scale + j.s);
+        lc.fill();
+      }
     }
     lc.filter = "none";
     lc.globalCompositeOperation = "source-in";
@@ -229,6 +259,7 @@ export function IslandView() {
   useEffect(() => {
     for (const bb of island.buildings) spriteOpaqueAt(ART[bb.type], 0.5, 0.5);
     if (island.native) spriteOpaqueAt(ART.village, 0.5, 0.5);
+    for (const src of [ART.tree, ART.treePine, ART.treeBroadleaf, ART.rockOutcrop]) spriteOpaqueAt(src, 0.5, 0.5);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spriteKey]);
 
@@ -324,19 +355,31 @@ export function IslandView() {
    *    water, so it snaps to the nearest land tile within that margin.
    */
   const tileAt = (wx: number, wy: number) => {
-    const tall = island.buildings
-      .map((bb) => ({ x: bb.x, y: bb.y, src: ART[bb.type] }))
-      .concat(island.native ? [{ x: island.native.x, y: island.native.y, src: ART.village }] : [])
-      .sort((p, q) => q.x + q.y - (p.x + p.y));
-    for (const s of tall) {
-      const { cx, cy } = iso(s.x, s.y, world.n);
-      // The sprite's box, as drawn by box(SPRITE) below.
-      const left = cx - SPRITE / 2;
-      const top = cy + TH * 0.18 - SPRITE;
-      if (wx < left || wx > left + SPRITE || wy < top || wy > top + SPRITE) continue;
-      // Only where the sprite is actually painted: its transparent margins (and the clear
-      // plot behind it showing through them) stay the ground's.
-      if (spriteOpaqueAt(s.src, (wx - left) / SPRITE, (wy - top) / SPRITE)) return { x: s.x, y: s.y };
+    // Everything standing on a tile, front to back: buildings, villages, trees, rocks.
+    const stands: { x: number; y: number; props: Prop[] }[] = [];
+    for (const tt of island.tiles) {
+      if (tt.terrain === "water") continue;
+      const { cx, cy } = iso(tt.x, tt.y, world.n);
+      const bb = island.buildings.find((q) => q.x === tt.x && q.y === tt.y);
+      const village = island.native && island.native.x === tt.x && island.native.y === tt.y;
+      const props = bb ? [standing(ART[bb.type], cx, cy, SPRITE)]
+        : village ? [standing(ART.village, cx, cy, SPRITE)]
+        : terrainProps(tt, cx, cy);
+      if (props.length) stands.push({ x: tt.x, y: tt.y, props });
+    }
+    stands.sort((p, q) => q.x + q.y - (p.x + p.y));
+    for (const s of stands) {
+      for (const pr of s.props) {
+        if (wx < pr.left || wx > pr.left + pr.size || wy < pr.top || wy > pr.top + pr.size) continue;
+        // Only where the sprite is actually painted: its transparent margins (and the
+        // ground behind showing through them) stay the ground's.
+        if (spriteOpaqueAt(pr.src, (wx - pr.left) / pr.size, (wy - pr.top) / pr.size)) return { x: s.x, y: s.y };
+      }
+    }
+    // The landing marker is solid and rises above its tile.
+    if (war?.landed && !war.resolved && war.islandId === island.id) {
+      const { cx, cy } = iso(war.x, war.y, world.n);
+      if (Math.abs(wx - cx) <= 30 && wy >= cy - 52 && wy <= cy + 8) return { x: war.x, y: war.y };
     }
     const a = (wx - PAD - TW / 2) / (TW / 2) - (world.n - 1);
     const b = (wy - PAD_TOP - TH / 2) / (TH / 2);
@@ -424,7 +467,6 @@ export function IslandView() {
           const b = island.buildings.find((bb) => bb.x === t.x && bb.y === t.y);
           const native = island.native && island.native.x === t.x && island.native.y === t.y;
           const sel = selected?.x === t.x && selected?.y === t.y;
-          const forestTree = t.terrain === "forest" && !b && !native;
           const landing =
             war?.landed &&
             !war.resolved &&
@@ -455,16 +497,11 @@ export function IslandView() {
                   <polygon points={`${TW / 2},3 ${TW - 4},${TH / 2} ${TW / 2},${TH - 3} 4,${TH / 2}`} fill="color-mix(in oklab, var(--color-primary) 18%, transparent)" stroke="var(--color-primary)" strokeWidth="3" />
                 </svg>
               ) : null}
-              {forestTree ? (
-                <>
-                  {/* Two trees per forest tile, the mix varying by tile so the wood is not a grid of clones. */}
-                  <img src={(t.x + t.y) % 3 === 0 ? ART.treeBroadleaf : ART.treePine} alt="" draggable={false} className="absolute max-w-none object-contain" style={{ ...box(TW * 0.62, -0.05), left: cx - TW * 0.42 }} />
-                  <img src={(t.x * 2 + t.y) % 3 === 1 ? ART.tree : (t.x + t.y) % 2 ? ART.treePine : ART.treeBroadleaf} alt="" draggable={false} className="absolute max-w-none object-contain" style={{ ...box(TW * 0.7, 0.22), left: cx - TW * 0.05 }} />
-                </>
-              ) : null}
-              {t.terrain === "hills" && !b && !native ? (
-                <img src={ART.rockOutcrop} alt="" draggable={false} className="absolute max-w-none object-contain" style={box(TW * 0.62, 0.05)} />
-              ) : null}
+              {!b && !native
+                ? terrainProps(t, cx, cy).map((pr, i) => (
+                    <img key={i} src={pr.src} alt="" draggable={false} className="absolute max-w-none object-contain" style={{ left: pr.left, top: pr.top, width: pr.size, height: pr.size }} />
+                  ))
+                : null}
               {native ? (
                 <img src={ART.village} alt="" draggable={false} className="absolute max-w-none object-contain drop-shadow-sm" style={box(SPRITE)} />
               ) : null}
