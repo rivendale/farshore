@@ -31,4 +31,15 @@ npm run dev
 
 `npm run build` and `npm run typecheck` are the gates. `npm run build:pages` emits a static GitHub Pages build.
 
-Public repo. Art under `public/game/` is generated for this project.
+## License
+
+The source code is under the [MIT License](LICENSE).
+
+The MIT License does **not** cover these images:
+- the art under `public/game/` (buildings, icons, props, tiles, islands, scenes);
+- `public/og.jpg`, `public/x-banner.jpg`, `public/favicon.svg` and `public/__grok/icon-180.png`;
+- `attachments/image.png`, a screenshot of the game.
+
+They were generated for this project or captured from it; none is third-party. Ask before reusing them.
+
+Not distributed here: the Fraunces and Source Sans 3 fonts load from Google Fonts under their own license (SIL Open Font License). npm dependencies keep their own licenses.
