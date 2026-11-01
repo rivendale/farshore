@@ -13,6 +13,13 @@ import {
   probeDevAuthEnabled,
 } from "./check-auth-invariant.mjs";
 import { projectRoot } from "./with-app-env.mjs";
+import { existsSync } from "node:fs";
+
+// .grok/ is the git-ignored Grok app-builder folder, so these tests cannot pass on a fresh clone.
+// Skipped (not failed) when it is missing, e.g. on a fresh clone in CI before
+// the Pages deploy; they still run inside the Grok builder, where it exists.
+const NO_APP_ENV = !existsSync(new URL("../.grok/app-env.json", import.meta.url)) &&
+  ".grok/app-env.json is not in the repo";
 
 /**
  * The JSON body `/__app-env` would serve. Do not start a real Vite server —
@@ -90,7 +97,7 @@ test("only a divergence warns the smoke verdict", () => {
   }
 });
 
-test("the build side resolves the template's shipped app-env", () => {
+test("the build side resolves the template's shipped app-env", { skip: NO_APP_ENV }, () => {
   assert.equal(buildAuthEnabled(projectRoot(), {}), false);
   assert.equal(buildAuthEnabled(projectRoot(), { VITE_AUTH_ENABLED: "true" }), true);
 });

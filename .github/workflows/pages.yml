@@ -24,6 +24,8 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
+      # Tests run first; a failing test stops the deploy.
+      - run: npm test
       - run: npm run build:pages
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

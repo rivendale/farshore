@@ -21,6 +21,13 @@ import { renderInstallPage } from "./grok-pwa-plugin.mjs";
 
 const TEMPLATE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
+// These tests describe the blank template. An exported app ships its own
+// src/lib/og/site.json (title, card), which readOgSite() picks up from the
+// working directory and which overrode the template defaults, so 8 tests
+// failed in every export. Run from an empty directory so the app's own
+// share-card config cannot leak in; paths the tests need are absolute.
+process.chdir(mkdtempSync(join(tmpdir(), "grok-pwa-test-")));
+
 test("injects before </head>", () => {
   const out = injectGrokPwaHead("<html><head><title>x</title></head><body></body></html>");
   assert.match(out, /rel="manifest"/);
