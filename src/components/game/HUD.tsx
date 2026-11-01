@@ -3,7 +3,8 @@ import { GOODS, libertyPercent, totalPop, totalStock } from "@/game/data/catalog
 import { idleHands } from "@/game/data/people";
 import { useGame } from "@/game/store";
 import type { PlayView, WarState } from "@/game/types";
-import { Anchor, Crown, Map, Pause, Play, Mountain } from "lucide-react";
+import { Anchor, Crown, Map, Pause, Play, Mountain, Volume2, VolumeX } from "lucide-react";
+import { sfx } from "@/game/sfx";
 import { useState } from "react";
 
 const NAV: { id: PlayView; label: string; icon: typeof Map }[] = [
@@ -73,6 +74,7 @@ export function HUD() {
             <SpeedBtn active={speed === 2} onClick={() => setSpeed(2)} label="Faster">
               2x
             </SpeedBtn>
+            <SoundBtn />
           </div>
         </div>
         {stores ? (
@@ -145,6 +147,23 @@ function Chip({ icon, value }: { icon: "gold" | "food" | "lumber" | "planks"; va
       <GoodIcon id={icon} className="size-5" />
       {Math.floor(value)}
     </span>
+  );
+}
+
+// Mute toggle for the sound cues; the choice is saved (localStorage farshore-sound).
+function SoundBtn() {
+  const [muted, setMuted] = useState(() => sfx.isMuted());
+  return (
+    <SpeedBtn
+      active={false}
+      onClick={() => {
+        sfx.setMuted(!muted);
+        setMuted(!muted);
+      }}
+      label={muted ? "Sound off. Turn sound on" : "Sound on. Mute"}
+    >
+      {muted ? <VolumeX className="size-3.5" /> : <Volume2 className="size-3.5" />}
+    </SpeedBtn>
   );
 }
 

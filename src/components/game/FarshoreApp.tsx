@@ -10,6 +10,7 @@ import { VictoryScreen } from "@/components/game/VictoryScreen";
 import { WorldMap } from "@/components/game/WorldMap";
 import { DAY_SECONDS } from "@/game/data/catalog";
 import { writeSave } from "@/game/persist";
+import { wireSound } from "@/game/sound";
 import { useGame } from "@/game/store";
 import { useEffect } from "react";
 
@@ -21,6 +22,7 @@ export function FarshoreApp() {
   const catchUp = useGame((s) => s.catchUp);
 
   useEffect(() => {
+    wireSound();
     hydrate();
   }, [hydrate]);
 
