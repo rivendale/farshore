@@ -12,6 +12,13 @@ import {
   projectRoot,
   readAppEnv,
 } from "./with-app-env.mjs";
+import { existsSync } from "node:fs";
+
+// .grok/ is the git-ignored Grok app-builder folder, so these tests cannot pass on a fresh clone.
+// Skipped (not failed) when it is missing, e.g. on a fresh clone in CI before
+// the Pages deploy; they still run inside the Grok builder, where it exists.
+const NO_APP_ENV = !existsSync(new URL("../.grok/app-env.json", import.meta.url)) &&
+  ".grok/app-env.json is not in the repo";
 
 const execFileAsync = promisify(execFile);
 const WRAPPER = join(projectRoot(), "scripts/with-app-env.mjs");
@@ -59,7 +66,7 @@ test("an explicit process-env override wins over the file", () => {
   assert.equal(merged.PATH, "/usr/bin");
 });
 
-test("the template ships auth off", () => {
+test("the template ships auth off", { skip: NO_APP_ENV }, () => {
   assert.deepEqual(readAppEnv(projectRoot()), { VITE_AUTH_ENABLED: "false" });
 });
 
@@ -73,7 +80,7 @@ test("vite loadEnv resolves the wrapped value", () => {
   assert.equal(merged.VITE_AUTH_ENABLED, "false");
 });
 
-test("the wrapped command runs with the app env applied", async () => {
+test("the wrapped command runs with the app env applied", { skip: NO_APP_ENV }, async () => {
   const { stdout } = await execFileAsync(process.execPath, [
     WRAPPER,
     process.execPath,
@@ -113,7 +120,7 @@ test("a signal-killed command is never reported as success", async () => {
   );
 });
 
-test("the CLI still runs when invoked through a symlinked path", async () => {
+test("the CLI still runs when invoked through a symlinked path", { skip: NO_APP_ENV }, async () => {
   // node realpaths import.meta.url but not process.argv[1], so a raw comparison
   // turns the wrapper into a no-op that exits 0 without starting anything.
   const link = join(mkdtempSync(join(tmpdir(), "app-env-link-")), "scripts");
