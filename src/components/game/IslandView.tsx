@@ -268,7 +268,12 @@ export function IslandView() {
   useEffect(() => {
     const c = groundRef.current;
     let current = true;
-    if (c) void paintGround(c, island, () => current);
+    if (c) {
+      delete c.dataset.ground;
+      void paintGround(c, island, () => current).then(() => {
+        if (current) c.dataset.ground = "ready";
+      });
+    }
     return () => {
       current = false;
     };
