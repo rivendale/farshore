@@ -13,6 +13,14 @@ export function randInt(rng: () => number, min: number, max: number) {
   return min + Math.floor(rng() * (max - min + 1));
 }
 
+/** Visual-smoke only. Normal play leaves this unset, so `uid` stays on Math.random. */
+let pinnedRandom: (() => number) | null = null;
+
+export function pinRandom(rand: (() => number) | null) {
+  pinnedRandom = rand;
+}
+
 export function uid(prefix: string) {
-  return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
+  const rand = pinnedRandom ?? Math.random;
+  return `${prefix}-${rand().toString(36).slice(2, 8)}`;
 }

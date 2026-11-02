@@ -21,6 +21,7 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${port}`,
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 1,
+    reducedMotion: "reduce",
   },
   webServer: {
     command: "node scripts/serve-pages.mjs",

@@ -10,6 +10,7 @@ import { VictoryScreen } from "@/components/game/VictoryScreen";
 import { WorldMap } from "@/components/game/WorldMap";
 import { DAY_SECONDS } from "@/game/data/catalog";
 import { writeSave } from "@/game/persist";
+import { bootShot, readShot } from "@/game/shot";
 import { wireSound } from "@/game/sound";
 import { useGame } from "@/game/store";
 import { useEffect } from "react";
@@ -22,6 +23,11 @@ export function FarshoreApp() {
   const catchUp = useGame((s) => s.catchUp);
 
   useEffect(() => {
+    const shot = typeof window !== "undefined" ? readShot(window.location.search) : null;
+    if (shot) {
+      useGame.setState(bootShot(shot));
+      return;
+    }
     wireSound();
     hydrate();
   }, [hydrate]);
@@ -49,6 +55,8 @@ export function FarshoreApp() {
 
   useEffect(() => {
     const onHide = () => {
+      // The shot URL is a frozen picture. Do not write it over a real save.
+      if (readShot(window.location.search)) return;
       if (document.visibilityState === "hidden") writeSave(useGame.getState());
       else catchUp();
     };

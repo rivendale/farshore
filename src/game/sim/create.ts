@@ -5,7 +5,7 @@ import { makeRival } from "@/game/sim/world";
 import { uid } from "@/game/sim/rng";
 import type { GameState, GoodId, NationId } from "@/game/types";
 
-export function createGame(nationId: NationId, seed = Date.now()): GameState {
+export function createGame(nationId: NationId, seed = Date.now(), now = Date.now()): GameState {
   const nation = NATIONS[nationId];
   const islands = generateArchipelago(seed, nation.nativeRel);
   const prices = { ...BASE_PRICES } as Record<GoodId, number>;
@@ -18,7 +18,7 @@ export function createGame(nationId: NationId, seed = Date.now()): GameState {
     nationId,
     seed,
     day: 1,
-    lastRealAt: Date.now(),
+    lastRealAt: now,
     speed: 1,
     gold: nation.gold,
     taxRate: 0,

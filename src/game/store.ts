@@ -25,6 +25,7 @@ import { royalHost, rivalHost } from "@/game/sim/combat";
 import { depart, emptyStop, loadChainCargo } from "@/game/sim/routes";
 import { concludeWar, landHost, makeWar } from "@/game/sim/war";
 import { clearSave, loadSave, writeSave } from "@/game/persist";
+import { readShot } from "@/game/shot";
 import { uid } from "@/game/sim/rng";
 import { catchUp, tickDay } from "@/game/sim/tick";
 import type {
@@ -95,6 +96,7 @@ type Actions = {
 let saveTimer: number | null = null;
 function scheduleSave(state: GameState) {
   if (typeof window === "undefined") return;
+  if (readShot(window.location.search)) return;
   if (saveTimer) window.clearTimeout(saveTimer);
   saveTimer = window.setTimeout(() => writeSave(state), 400);
 }
