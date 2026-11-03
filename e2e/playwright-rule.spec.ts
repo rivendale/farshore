@@ -1,30 +1,39 @@
 import { expect, test as pwTest } from "@playwright/test";
-import { test } from "./fixtures";
 import fs from "node:fs";
+import { browserCommandLine, isDescendantPid } from "../scripts/launched-browser.mjs";
+import { test } from "./fixtures";
 
 /**
  * Nick's Playwright rule (2026-11-02): until Playwright bundles Chromium
  * >= 156.0.8078.73, tests may only hit local hosts and must use chromiumSandbox.
  *
- * The sandbox check reads the launched browser process command line. Checking
- * the config object alone is not enough: Playwright ignores chromiumSandbox
- * when it sits directly under use instead of use.launchOptions.
+ * The sandbox check reads the command line of the browser this test launched.
+ * Checking the config object alone is not enough: Playwright ignores
+ * chromiumSandbox when it sits directly under use instead of use.launchOptions.
+ * Other Chrome processes on the machine are not part of the check.
  */
+function parentPid(pid: number): number | null {
+  try {
+    const stat = fs.readFileSync(`/proc/${pid}/stat`, "utf8");
+    const close = stat.lastIndexOf(")");
+    if (close < 0) return null;
+    const ppid = Number(stat.slice(close + 2).trim().split(/\s+/)[1]);
+    return Number.isInteger(ppid) ? ppid : null;
+  } catch {
+    return null;
+  }
+}
+
 function playwrightBrowserCommandLines(): string[] {
+  const root = process.pid;
   const lines: string[] = [];
   for (const entry of fs.readdirSync("/proc")) {
     if (!/^\d+$/.test(entry)) continue;
+    const pid = Number(entry);
+    if (!isDescendantPid(pid, root, parentPid)) continue;
     try {
-      const raw = fs.readFileSync(`/proc/${entry}/cmdline`, "utf8");
-      if (!raw.includes("playwright") && !raw.includes("headless_shell")) {
-        // Playwright profiles use playwright_* user-data-dir; also match chrome/chromium.
-        if (!/chrome|chromium|headless_shell/i.test(raw)) continue;
-        if (!raw.includes("user-data-dir")) continue;
-      }
-      const line = raw.replace(/\0/g, " ").trim();
-      if (/chrome|chromium|headless_shell/i.test(line) && line.includes("user-data-dir")) {
-        lines.push(line);
-      }
+      const line = browserCommandLine(fs.readFileSync(`/proc/${pid}/cmdline`, "utf8"));
+      if (line) lines.push(line);
     } catch {
       // process may have exited
     }
