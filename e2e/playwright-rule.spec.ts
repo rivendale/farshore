@@ -1,5 +1,5 @@
 import { expect, test as pwTest } from "@playwright/test";
-import { expect as fixtureExpect, test } from "./fixtures";
+import { test } from "./fixtures";
 import fs from "node:fs";
 
 /**
@@ -60,6 +60,11 @@ test.describe("Playwright local-only rule", () => {
       }
     });
 
+    const failed = page.waitForEvent("requestfailed", {
+      predicate: (request) => request.url().startsWith("https://example.com/"),
+      timeout: 5_000,
+    });
+
     const result = await page.evaluate(async () => {
       try {
         const res = await fetch("https://example.com/", { mode: "no-cors" });
@@ -69,7 +74,14 @@ test.describe("Playwright local-only rule", () => {
       }
     });
 
+    const request = await failed;
     expect(externalReached, "an external response should never arrive").toBe(false);
-    fixtureExpect(result.ok, "fetch to example.com must be blocked").toBe(false);
+    expect(result.ok, "fetch to example.com must be blocked").toBe(false);
+    // Fetch.failRequest(BlockedByClient) surfaces as this inspector error.
+    // DNS, TLS, and offline failures use other net:: codes, so they do not pass.
+    expect(
+      request.failure()?.errorText,
+      "the route guard must abort the request as blocked by the client",
+    ).toBe("net::ERR_BLOCKED_BY_CLIENT.Inspector");
   });
 });
