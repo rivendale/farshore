@@ -19,8 +19,8 @@ let savePersistence = true;
 
 /**
  * Screenshot URLs (`?shot=`) replace the in-memory game with a still frame.
- * Persistence has to be off for that visit, or hiding the tab writes the
- * frame over the player's save.
+ * Persistence has to be off for that visit, or a tick would write the frame
+ * over the player's save and "Abandon your colony" would delete it.
  */
 export function setSavePersistence(enabled: boolean) {
   savePersistence = enabled;
@@ -50,6 +50,7 @@ export function writeSave(state: GameState) {
 }
 
 export function clearSave() {
+  if (!savePersistence) return;
   try {
     localStorage.removeItem(SAVE_KEY);
   } catch {
