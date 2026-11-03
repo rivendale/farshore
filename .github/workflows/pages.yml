@@ -2,20 +2,19 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+  pull_request:
   workflow_dispatch:
 
+# Read-only by default. The deploy job elevates pages and id-token, and only on main.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -24,21 +23,41 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
-      # Tests run first; a failing test stops the deploy.
+        env:
+          # Chromium is installed later, and only for the visual smoke.
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+      # Tests run first; a failing test stops the job.
+      # The visual smoke is separate. It does not use the files issue 11 is missing.
       - run: npm test
       - run: npm run build:pages
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - run: npx playwright install --with-deps chrome
+      - run: npm run test:visual
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
+          name: pages-build
           path: .output/public
+          include-hidden-files: true
+          if-no-files-found: error
 
   deploy:
-    needs: build
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: pages-build
+          path: .output/public
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .output/public
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

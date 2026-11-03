@@ -8,6 +8,9 @@ dist/
 artifacts/
 assets/
 screenshots/
+test-results/
+playwright-report/
+blob-report/
 .project_id
 .node_modules.lock
 *.log

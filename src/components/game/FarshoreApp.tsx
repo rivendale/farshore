@@ -9,10 +9,28 @@ import { Tutorial } from "@/components/game/Tutorial";
 import { VictoryScreen } from "@/components/game/VictoryScreen";
 import { WorldMap } from "@/components/game/WorldMap";
 import { DAY_SECONDS } from "@/game/data/catalog";
-import { writeSave } from "@/game/persist";
+import { setSavePersistence, writeSave } from "@/game/persist";
+import { createGame } from "@/game/sim/create";
 import { wireSound } from "@/game/sound";
 import { useGame } from "@/game/store";
+import type { PlayView } from "@/game/types";
 import { useEffect } from "react";
+
+/**
+ * `?shot=island&seed=1` or `?shot=world&seed=1` boots a still frame.
+ * The visual smoke uses it. A normal visit has no `shot` param.
+ * The seed goes to `createGame`. Speed stays paused so the day clock does not move.
+ * Persistence stays off, so the frame cannot replace a saved game.
+ */
+function visualShot(): { view: PlayView; seed: number } | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const shot = params.get("shot");
+  if (shot !== "island" && shot !== "world") return null;
+  const raw = Number(params.get("seed") ?? "1");
+  const seed = Number.isFinite(raw) ? raw >>> 0 : 1;
+  return { view: shot, seed };
+}
 
 export function FarshoreApp() {
   const screen = useGame((s) => s.screen);
@@ -23,6 +41,21 @@ export function FarshoreApp() {
 
   useEffect(() => {
     wireSound();
+    const shot = visualShot();
+    if (shot) {
+      setSavePersistence(false);
+      const game = createGame("england", shot.seed);
+      useGame.setState({
+        ...game,
+        speed: 0,
+        view: shot.view,
+        sheet: "none",
+        tutorialDone: true,
+        tutorialStep: 6,
+      });
+      return;
+    }
+    setSavePersistence(true);
     hydrate();
   }, [hydrate]);
 
@@ -48,6 +81,7 @@ export function FarshoreApp() {
   }, [tick]);
 
   useEffect(() => {
+    if (visualShot()) return;
     const onHide = () => {
       if (document.visibilityState === "hidden") writeSave(useGame.getState());
       else catchUp();

@@ -40,9 +40,7 @@ function shell({ js, css }) {
   <meta name="description" content="You found the colony. You build the chains. You win your independence.">
   <title>Farshore</title>
   <link rel="icon" type="image/svg+xml" href="${BASE}favicon.svg">
-${cssLink}  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap">
+${cssLink}  <link rel="stylesheet" href="${BASE}fonts/fonts.css">
 </head>
 <body>
   <script type="module" src="${BASE}assets/${js}"></script>
