@@ -15,6 +15,17 @@ function migrate(raw: GameState): GameState {
   return s;
 }
 
+let savePersistence = true;
+
+/**
+ * Screenshot URLs (`?shot=`) replace the in-memory game with a still frame.
+ * Persistence has to be off for that visit, or hiding the tab writes the
+ * frame over the player's save.
+ */
+export function setSavePersistence(enabled: boolean) {
+  savePersistence = enabled;
+}
+
 export function loadSave(): GameState | null {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -28,6 +39,7 @@ export function loadSave(): GameState | null {
 }
 
 export function writeSave(state: GameState) {
+  if (!savePersistence) return;
   try {
     const blob = JSON.stringify({ ...state, lastRealAt: Date.now() });
     localStorage.setItem(SAVE_KEY + ".bak", localStorage.getItem(SAVE_KEY) ?? "");
